@@ -82,8 +82,8 @@ function BigRoadGrid({ cells, cols, rows, visibleCount }: { cells: GridCell[]; c
             let bgClass: string;
             let borderClass: string;
             if (isUp) {
-              bgClass = cell.confirmed ? "bg-green-600/80" : "bg-green-500/20";
-              borderClass = "border-green-500/40";
+              bgClass = cell.confirmed ? "bg-cyan-600/80" : "bg-primary/20";
+              borderClass = "border-primary/40";
             } else {
               bgClass = cell.confirmed ? "bg-red-500/70" : "bg-red-500/20";
               borderClass = "border-red-500/40";
@@ -102,12 +102,12 @@ function BigRoadGrid({ cells, cols, rows, visibleCount }: { cells: GridCell[]; c
                 style={cell.isLatest && isVisible ? {
                   animation: "gridBlink 1s ease-in-out infinite",
                   boxShadow: isUp
-                    ? "0 0 10px rgba(34,197,94,0.5)"
+                    ? "0 0 10px rgba(0,188,165,0.5)"
                     : "0 0 10px rgba(239,68,68,0.5)",
                 } : undefined}
                 data-testid={`grid-cell-${i}`}
               >
-                <span className={isUp ? "text-green-200" : "text-red-200"}>
+                <span className={isUp ? "text-cyan-200" : "text-red-200"}>
                   {isUp ? "\u2191" : "\u2193"}
                 </span>
               </div>
@@ -161,10 +161,10 @@ function SmallRoadGrid({ cells, cols, rows, visibleCount }: { cells: GridCell[];
             const isUp = cell.direction === "up";
 
             const fillColor = isUp
-              ? (cell.confirmed ? "bg-green-500" : "bg-green-500/40")
+              ? (cell.confirmed ? "bg-primary" : "bg-primary/40")
               : (cell.confirmed ? "bg-red-500" : "bg-red-500/40");
 
-            const borderColor = isUp ? "border-green-400/50" : "border-red-400/50";
+            const borderColor = isUp ? "border-primary/50" : "border-red-400/50";
 
             return (
               <div
@@ -186,7 +186,7 @@ function SmallRoadGrid({ cells, cols, rows, visibleCount }: { cells: GridCell[];
                     ...(cell.isLatest && isVisible ? {
                       animation: "gridBlink 1s ease-in-out infinite",
                       boxShadow: isUp
-                        ? "0 0 8px rgba(34,197,94,0.6)"
+                        ? "0 0 8px rgba(0,188,165,0.6)"
                         : "0 0 8px rgba(239,68,68,0.6)",
                     } : {}),
                   }}
@@ -246,7 +246,7 @@ export function PredictionGrid({ bets, gridType, timeframe }: PredictionGridProp
   return (
     <div data-testid={`prediction-grid-${gridType}`}>
       <div className="flex items-center gap-3 mb-2 text-[11px] flex-wrap">
-        <span className="text-green-400 font-medium" data-testid="text-bull-count">Bull: {ups}</span>
+        <span className="text-primary font-medium" data-testid="text-bull-count">Bull: {ups}</span>
         <span className="text-red-400 font-medium" data-testid="text-bear-count">Bear: {downs}</span>
         <span className="flex items-center gap-1 text-muted-foreground">
           <span className="inline-block h-1.5 w-1.5 rounded-full bg-yellow-400 animate-pulse" />

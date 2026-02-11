@@ -57,31 +57,31 @@ export function StatsPanel({ stats, isLoading }: StatsPanelProps) {
   return (
     <Card
       className="border-border bg-card"
-      style={{ boxShadow: "0 0 12px rgba(34, 197, 94, 0.08), inset 0 0 0 1px rgba(34, 197, 94, 0.1)" }}
+      style={{ boxShadow: "0 0 12px rgba(0, 188, 165, 0.06), inset 0 0 0 1px rgba(0, 188, 165, 0.08)" }}
     >
       <CardContent className="p-3">
-        <div className="text-xs font-medium mb-2 text-green-400/80">
+        <div className="text-xs font-medium mb-2 text-primary/80">
           My Stats
         </div>
         <div className="grid grid-cols-4 gap-4 text-center">
           <div>
-            <div className="text-lg font-bold" data-testid="text-total-bets">{totalAnim}</div>
+            <div className="text-lg font-bold text-neon-value" data-testid="text-total-bets">{totalAnim}</div>
             <div className="text-[10px] text-muted-foreground">Total Bets</div>
           </div>
           <div>
             <div className="text-lg font-bold" data-testid="text-win-loss">
-              <span className="text-green-400">{winsAnim}</span>
+              <span className="text-neon-value">{winsAnim}</span>
               <span className="text-muted-foreground">/</span>
               <span className="text-red-400">{lossesAnim}</span>
             </div>
             <div className="text-[10px] text-muted-foreground">W/L</div>
           </div>
           <div>
-            <div className="text-lg font-bold text-green-400" data-testid="text-win-rate">{winRate}%</div>
+            <div className="text-lg font-bold text-neon-value" data-testid="text-win-rate">{winRate}%</div>
             <div className="text-[10px] text-muted-foreground">Win Rate</div>
           </div>
           <div>
-            <div className="text-lg font-bold" data-testid="text-total-staked">${staked.toFixed(0)}</div>
+            <div className="text-lg font-bold text-neon-value" data-testid="text-total-staked">${staked.toFixed(0)}</div>
             <div className="text-[10px] text-muted-foreground">Staked</div>
           </div>
         </div>

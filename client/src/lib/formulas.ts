@@ -92,7 +92,7 @@ export function calcStrategyWinDisplay(winRate: number): string {
 }
 
 export function getReturnColor(isPositive: boolean): string {
-  return isPositive ? "hsl(142, 72%, 45%)" : "hsl(0, 72%, 55%)";
+  return isPositive ? "hsl(160, 70%, 45%)" : "hsl(0, 72%, 55%)";
 }
 
 export function formatDailyRate(dailyRate: number): string {

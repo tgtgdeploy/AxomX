@@ -34,7 +34,7 @@ export function PriceHeader({ coin, isLoading }: PriceHeaderProps) {
         <Badge
           className={`text-xs ${
             isPositive
-              ? "bg-green-500/15 text-green-400 no-default-hover-elevate no-default-active-elevate"
+              ? "bg-primary/15 text-neon-value no-default-hover-elevate no-default-active-elevate"
               : "bg-red-500/15 text-red-400 no-default-hover-elevate no-default-active-elevate"
           }`}
         >

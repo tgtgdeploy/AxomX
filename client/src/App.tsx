@@ -43,12 +43,14 @@ function Header() {
   const { client, isLoading } = useThirdwebClient();
 
   return (
-    <header className="sticky top-0 z-50 flex items-center justify-between px-4 py-2 border-b border-border/50 bg-background/95 backdrop-blur-md">
-      <Link href="/" className="flex items-center gap-2 cursor-pointer" data-testid="link-logo-home">
-        <div className="h-7 w-7 rounded-md bg-primary/20 flex items-center justify-center glow-green-sm">
-          <span className="text-sm font-bold text-primary">N</span>
+    <header className="sticky top-0 z-50 flex items-center justify-between px-4 py-2.5 border-b border-border/40 bg-background/90 backdrop-blur-xl">
+      <Link href="/" className="flex items-center gap-2.5 cursor-pointer" data-testid="link-logo-home">
+        <div className="h-8 w-8 rounded-md bg-primary/15 flex items-center justify-center neon-glow-sm border border-primary/30">
+          <span className="font-display text-sm font-bold text-primary drop-shadow-[0_0_8px_rgba(0,188,165,0.6)]">A</span>
         </div>
-        <span className="text-sm font-bold tracking-wider">NEXA</span>
+        <span className="font-display text-sm font-bold tracking-widest text-foreground">
+          Axom<span className="text-primary drop-shadow-[0_0_6px_rgba(0,188,165,0.5)]">X</span>
+        </span>
       </Link>
       {isLoading || !client ? (
         <div className="h-9 w-24 animate-pulse rounded-md bg-muted" />
@@ -59,26 +61,28 @@ function Header() {
           connectButton={{
             label: "Connect",
             style: {
-              background: "hsl(142, 72%, 45%)",
-              color: "hsl(150, 20%, 5%)",
+              background: "linear-gradient(135deg, hsl(174, 72%, 46%), hsl(170, 60%, 36%))",
+              color: "#ffffff",
               borderRadius: "6px",
               fontSize: "13px",
               fontWeight: "600",
               height: "36px",
               padding: "0 16px",
               border: "none",
+              boxShadow: "0 0 12px rgba(0, 188, 165, 0.3), 0 0 4px rgba(0, 188, 165, 0.2)",
             },
           }}
           detailsButton={{
             style: {
-              background: "hsl(150, 8%, 14%)",
-              color: "hsl(150, 5%, 95%)",
+              background: "hsl(170, 18%, 10%)",
+              color: "hsl(165, 15%, 93%)",
               borderRadius: "6px",
               fontSize: "13px",
               fontWeight: "500",
               height: "36px",
               padding: "0 12px",
-              border: "1px solid hsl(150, 8%, 20%)",
+              border: "1px solid rgba(0, 188, 165, 0.2)",
+              boxShadow: "0 0 8px rgba(0, 188, 165, 0.06)",
             },
           }}
           theme="dark"

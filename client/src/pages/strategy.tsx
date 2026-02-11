@@ -220,7 +220,7 @@ export default function StrategyPage() {
                   <Card className="border-border bg-background">
                     <CardContent className="p-2 text-center">
                       <div className="text-[10px] text-muted-foreground">Win Rate</div>
-                      <div className="text-xs font-bold text-green-400" data-testid="text-dialog-winrate">
+                      <div className="text-xs font-bold text-neon-value" data-testid="text-dialog-winrate">
                         {Number(selectedStrategy.winRate).toFixed(1)}%
                       </div>
                     </CardContent>
@@ -228,7 +228,7 @@ export default function StrategyPage() {
                   <Card className="border-border bg-background">
                     <CardContent className="p-2 text-center">
                       <div className="text-[10px] text-muted-foreground">Monthly</div>
-                      <div className="text-xs font-bold text-green-400" data-testid="text-dialog-return">
+                      <div className="text-xs font-bold text-neon-value" data-testid="text-dialog-return">
                         +{Number(selectedStrategy.monthlyReturn).toFixed(1)}%
                       </div>
                     </CardContent>

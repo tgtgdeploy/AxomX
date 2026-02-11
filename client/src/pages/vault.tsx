@@ -68,14 +68,14 @@ function TransactionTable({ walletAddress, type }: { walletAddress: string; type
               data-testid={`row-tx-${tx.id}`}
             >
               <span className="font-medium">{tx.token}</span>
-              <span className="text-green-400">${Number(tx.amount).toFixed(2)}</span>
+              <span className="text-neon-value">${Number(tx.amount).toFixed(2)}</span>
               <span className="text-muted-foreground truncate">
                 {tx.txHash ? shortenAddress(tx.txHash) : "-"}
               </span>
               <Badge
                 className={`text-[9px] w-fit no-default-hover-elevate no-default-active-elevate ${
                   tx.status === "CONFIRMED"
-                    ? "bg-green-500/15 text-green-400"
+                    ? "bg-primary/15 text-primary"
                     : "bg-yellow-500/15 text-yellow-400"
                 }`}
               >
@@ -202,7 +202,7 @@ export default function Vault() {
       </div>
 
       <div className="px-4">
-        <Card className="border-border bg-card shadow-[0_0_15px_rgba(34,197,94,0.05)]">
+        <Card className="border-border bg-card shadow-[0_0_15px_rgba(0,188,165,0.05)]">
           <CardContent className="p-4">
             <div className="flex items-center justify-between gap-4 mb-3 flex-wrap">
               <div>
@@ -213,7 +213,7 @@ export default function Vault() {
               </div>
               <div>
                 <div className="text-[10px] text-muted-foreground">Accumulated Yield</div>
-                <div className="text-xl font-bold text-green-400" data-testid="text-my-yield">
+                <div className="text-xl font-bold text-neon-value" data-testid="text-my-yield">
                   {walletAddress ? formatUSD(totalYield) : "$0.00"}
                 </div>
               </div>
@@ -273,7 +273,7 @@ export default function Vault() {
                       <span className="font-medium">${Number(pos.principal).toFixed(2)}</span>
                       <span className="text-muted-foreground">{start.toLocaleDateString()}</span>
                       <span className="text-muted-foreground">{lockDays}d</span>
-                      <span className={remainingDays > 0 ? "text-yellow-400" : "text-green-400"}>
+                      <span className={remainingDays > 0 ? "text-yellow-400" : "text-neon-value"}>
                         {pos.status === "ACTIVE" ? `${remainingDays}d` : pos.status}
                       </span>
                       <div>
@@ -349,7 +349,7 @@ export default function Vault() {
       <div className="fixed bottom-16 left-0 right-0 z-40 border-t border-border bg-background/95 backdrop-blur-md px-4 py-3">
         <div className="mx-auto max-w-lg flex gap-3">
           <Button
-            className="flex-1 bg-green-600 text-white border-green-700"
+            className="flex-1 bg-cyan-600 text-white border-cyan-700"
             onClick={() => setDepositOpen(true)}
             data-testid="button-deposit-vault"
           >
@@ -403,7 +403,7 @@ export default function Vault() {
               <div className="bg-muted/30 rounded-md p-3 text-xs space-y-1">
                 <div className="flex justify-between gap-2">
                   <span className="text-muted-foreground">Daily Rate</span>
-                  <span className="text-green-400">
+                  <span className="text-neon-value">
                     {(VAULT_PLANS[selectedPlan as keyof typeof VAULT_PLANS]?.dailyRate * 100).toFixed(1)}%
                   </span>
                 </div>
@@ -414,7 +414,7 @@ export default function Vault() {
                 {depositAmount && !isNaN(parseFloat(depositAmount)) && (
                   <div className="flex justify-between gap-2 pt-1 border-t border-border/30">
                     <span className="text-muted-foreground">Est. Total Yield</span>
-                    <span className="text-green-400 font-medium">
+                    <span className="text-neon-value font-medium">
                       ${(parseFloat(depositAmount) * VAULT_PLANS[selectedPlan as keyof typeof VAULT_PLANS]?.dailyRate * VAULT_PLANS[selectedPlan as keyof typeof VAULT_PLANS]?.days).toFixed(2)}
                     </span>
                   </div>
@@ -424,7 +424,7 @@ export default function Vault() {
           </div>
           <DialogFooter>
             <Button
-              className="w-full bg-green-600 text-white border-green-700"
+              className="w-full bg-cyan-600 text-white border-cyan-700"
               onClick={handleDeposit}
               disabled={depositMutation.isPending || !walletAddress}
               data-testid="button-confirm-deposit"
@@ -484,7 +484,7 @@ export default function Vault() {
                       </div>
                       <div className="flex justify-between gap-2">
                         <span className="text-muted-foreground">Yield ({days}d)</span>
-                        <span className="text-green-400">${yieldAmt.toFixed(2)}</span>
+                        <span className="text-neon-value">${yieldAmt.toFixed(2)}</span>
                       </div>
                       <div className="flex justify-between gap-2 pt-1 border-t border-border/30">
                         <span className="text-muted-foreground">Total</span>

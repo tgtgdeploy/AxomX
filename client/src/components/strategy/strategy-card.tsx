@@ -54,7 +54,7 @@ export function StrategyCard({ strategy, index, onSubscribe }: StrategyCardProps
         <div className="text-[10px] text-muted-foreground mb-1">
           {strategy.leverage} | AUM: {formatCompact(aum)}
         </div>
-        <div className={`text-xl font-bold mb-1 ${isPositive ? "text-green-400" : "text-red-400"}`}>
+        <div className={`text-xl font-bold mb-1 ${isPositive ? "text-neon-value" : "text-red-400"}`}>
           {formatted}
         </div>
         <div className="text-[10px] text-muted-foreground mb-2">Win: {winDisplay}</div>

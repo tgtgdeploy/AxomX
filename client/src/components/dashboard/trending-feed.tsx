@@ -47,7 +47,7 @@ export function TrendingFeed({ prices, isLoading }: TrendingFeedProps) {
               variant="secondary"
               className={`whitespace-nowrap text-xs transition-transform duration-300 ${
                 isGain
-                  ? "bg-green-500/10 text-green-400"
+                  ? "bg-primary/10 text-neon-value"
                   : "bg-red-500/10 text-red-400"
               } no-default-hover-elevate no-default-active-elevate`}
               data-testid={`badge-trending-${coin.symbol}`}

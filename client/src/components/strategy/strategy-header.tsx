@@ -49,7 +49,7 @@ export function StrategyHeader() {
             <div className="flex items-center gap-1 text-[10px] text-muted-foreground mb-1">
               <Target className="h-3 w-3" /> Avg Win Rate
             </div>
-            <div className="text-xl font-bold text-green-400" data-testid="text-win-rate">{overview.avgWinRate}</div>
+            <div className="text-xl font-bold text-neon-value" data-testid="text-win-rate">{overview.avgWinRate}</div>
           </CardContent>
         </Card>
         <Card className="border-border bg-card/50">
@@ -57,7 +57,7 @@ export function StrategyHeader() {
             <div className="flex items-center gap-1 text-[10px] text-muted-foreground mb-1">
               <BarChart3 className="h-3 w-3" /> Avg Monthly Return
             </div>
-            <div className="text-xl font-bold text-green-400" data-testid="text-avg-return">{overview.avgReturn}</div>
+            <div className="text-xl font-bold text-neon-value" data-testid="text-avg-return">{overview.avgReturn}</div>
           </CardContent>
         </Card>
       </div>

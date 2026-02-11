@@ -93,7 +93,7 @@ export default function Trade() {
 
         <div className="flex items-center gap-1 text-[10px] text-muted-foreground">
           Data:
-          <Badge variant="outline" className="text-[9px] text-green-400/70 border-green-400/30 no-default-hover-elevate no-default-active-elevate px-1.5 py-0">
+          <Badge variant="outline" className="text-[9px] text-primary/70 border-primary/30 no-default-hover-elevate no-default-active-elevate px-1.5 py-0">
             Binance
           </Badge>
         </div>
@@ -106,13 +106,13 @@ export default function Trade() {
               key={tf}
               size="sm"
               variant={timeframe === tf ? "default" : "ghost"}
-              className={timeframe === tf ? "bg-green-500/20 text-green-400" : "text-muted-foreground"}
+              className={timeframe === tf ? "bg-primary/20 text-primary" : "text-muted-foreground"}
               onClick={() => setTimeframe(tf)}
               data-testid={`button-timeframe-${tf}`}
             >
               {tf}
               {timeframe === tf && (
-                <span className="inline-block ml-1 h-1 w-1 rounded-full bg-green-400 animate-pulse" />
+                <span className="inline-block ml-1 h-1 w-1 rounded-full bg-primary animate-pulse" />
               )}
             </Button>
           ))}
@@ -121,7 +121,7 @@ export default function Trade() {
           <Button
             size="sm"
             variant={gridView === "big" ? "default" : "ghost"}
-            className={gridView === "big" ? "bg-green-500/20 text-green-400" : "text-muted-foreground"}
+            className={gridView === "big" ? "bg-primary/20 text-primary" : "text-muted-foreground"}
             onClick={() => setGridView("big")}
             data-testid="button-bigroad"
           >
@@ -130,7 +130,7 @@ export default function Trade() {
           <Button
             size="sm"
             variant={gridView === "small" ? "default" : "ghost"}
-            className={gridView === "small" ? "bg-green-500/20 text-green-400" : "text-muted-foreground"}
+            className={gridView === "small" ? "bg-primary/20 text-primary" : "text-muted-foreground"}
             onClick={() => setGridView("small")}
             data-testid="button-smallroad"
           >
@@ -141,8 +141,8 @@ export default function Trade() {
 
       <div className="px-4" style={{ animation: "fadeSlideIn 0.35s ease-out 0.05s both" }}>
         <div className="flex items-center gap-2 mb-1.5">
-          <Radio className="h-3 w-3 text-green-400 animate-pulse" />
-          <span className="text-[10px] text-green-400/80 font-medium">{tfLabel}</span>
+          <Radio className="h-3 w-3 text-primary animate-pulse" />
+          <span className="text-[10px] text-primary/80 font-medium">{tfLabel}</span>
         </div>
         <PredictionGrid bets={bets} gridType={gridView} timeframe={timeframe} />
       </div>
@@ -153,7 +153,7 @@ export default function Trade() {
             <Button
               size="sm"
               variant={infoTab === "market" ? "default" : "ghost"}
-              className={infoTab === "market" ? "bg-green-500/20 text-green-400" : "text-muted-foreground"}
+              className={infoTab === "market" ? "bg-primary/20 text-primary" : "text-muted-foreground"}
               onClick={() => setInfoTab("market")}
               data-testid="button-market-tab"
             >
@@ -162,7 +162,7 @@ export default function Trade() {
             <Button
               size="sm"
               variant={infoTab === "leaderboard" ? "default" : "ghost"}
-              className={infoTab === "leaderboard" ? "bg-green-500/20 text-green-400" : "text-muted-foreground"}
+              className={infoTab === "leaderboard" ? "bg-primary/20 text-primary" : "text-muted-foreground"}
               onClick={() => setInfoTab("leaderboard")}
               data-testid="button-leaderboard-tab"
             >
@@ -177,18 +177,18 @@ export default function Trade() {
             <div className="flex items-center justify-between gap-2 flex-wrap">
               {currentPrice !== null && (
                 <div className="flex items-center gap-2 flex-wrap">
-                  <span className="text-xl font-bold text-green-400" data-testid="text-current-price">
+                  <span className="text-xl font-bold text-neon-value" data-testid="text-current-price">
                     {formatUSD(currentPrice)}
                   </span>
                   <span className="text-[10px] text-muted-foreground">{selectedAsset}/USD</span>
                 </div>
               )}
-              <div className="flex items-center gap-1 text-[10px] text-green-400/70">
-                <span className="inline-block h-1.5 w-1.5 rounded-full bg-green-400 animate-pulse" />
+              <div className="flex items-center gap-1 text-[10px] text-primary/70">
+                <span className="inline-block h-1.5 w-1.5 rounded-full bg-primary animate-pulse" />
                 Live 1s
               </div>
             </div>
-            <PriceChart data={chartData} isLoading={chartLoading} color="hsl(142, 72%, 45%)" />
+            <PriceChart data={chartData} isLoading={chartLoading} color="hsl(174, 72%, 46%)" />
           </div>
         ) : (
           <Card className="border-border bg-card">
@@ -206,7 +206,7 @@ export default function Trade() {
       <div className="px-4 space-y-2" style={{ animation: "fadeSlideIn 0.35s ease-out 0.2s both" }}>
         <div className="flex items-center justify-between gap-2 flex-wrap">
           <span className="text-xs font-medium text-muted-foreground">Orders ({bets.length})</span>
-          <Button variant="ghost" size="sm" className="text-green-400" data-testid="button-batch-claim">
+          <Button variant="ghost" size="sm" className="text-primary" data-testid="button-batch-claim">
             Batch Claim
           </Button>
         </div>
@@ -225,7 +225,7 @@ export default function Trade() {
                   <div className="flex items-center justify-between gap-2 flex-wrap">
                     <div className="flex items-center gap-2 flex-wrap">
                       {bet.direction === "up" || bet.direction === "bull" ? (
-                        <TrendingUp className="h-4 w-4 text-green-400" />
+                        <TrendingUp className="h-4 w-4 text-primary" />
                       ) : (
                         <TrendingDown className="h-4 w-4 text-red-400" />
                       )}
@@ -234,7 +234,7 @@ export default function Trade() {
                         variant="outline"
                         className={`text-[10px] no-default-hover-elevate no-default-active-elevate ${
                           bet.direction === "up" || bet.direction === "bull"
-                            ? "text-green-400 border-green-400/30"
+                            ? "text-primary border-primary/30"
                             : "text-red-400 border-red-400/30"
                         }`}
                       >
@@ -247,7 +247,7 @@ export default function Trade() {
                         <Badge
                           variant="secondary"
                           className={`text-[10px] no-default-hover-elevate no-default-active-elevate ${
-                            bet.result === "WIN" ? "text-green-400" : "text-red-400"
+                            bet.result === "WIN" ? "text-neon-value" : "text-red-400"
                           }`}
                         >
                           {bet.result === "WIN" ? "Won" : "Lost"}

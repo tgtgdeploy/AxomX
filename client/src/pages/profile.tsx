@@ -13,7 +13,7 @@ import { NodeSection } from "@/components/profile/node-section";
 import { ReferralCard } from "@/components/profile/referral-card";
 
 const TX_TYPE_COLORS: Record<string, string> = {
-  DEPOSIT: "bg-green-500/15 text-green-400",
+  DEPOSIT: "bg-primary/15 text-primary",
   WITHDRAW: "bg-red-500/15 text-red-400",
   YIELD: "bg-blue-500/15 text-blue-400",
   VIP_PURCHASE: "bg-purple-500/15 text-purple-400",

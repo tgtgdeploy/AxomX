@@ -19,7 +19,7 @@ interface PriceChartProps {
   prediction?: PredictionData;
 }
 
-export function PriceChart({ data, isLoading, color = "hsl(142, 72%, 45%)", prediction }: PriceChartProps) {
+export function PriceChart({ data, isLoading, color = "hsl(174, 72%, 46%)", prediction }: PriceChartProps) {
   const [visible, setVisible] = useState(false);
 
   useEffect(() => {
@@ -45,7 +45,7 @@ export function PriceChart({ data, isLoading, color = "hsl(142, 72%, 45%)", pred
     <Minus className="mr-1 h-3 w-3" />;
 
   const directionColor =
-    direction === "BULLISH" ? "bg-green-500/15 text-green-400" :
+    direction === "BULLISH" ? "bg-primary/15 text-neon-value" :
     direction === "BEARISH" ? "bg-red-500/15 text-red-400" :
     "bg-yellow-500/15 text-yellow-400";
 
@@ -114,7 +114,7 @@ export function PriceChart({ data, isLoading, color = "hsl(142, 72%, 45%)", pred
           {targetPrice && (
             <ReferenceLine
               y={targetPrice}
-              stroke={direction === "BULLISH" ? "hsl(142, 72%, 45%)" : direction === "BEARISH" ? "hsl(0, 72%, 55%)" : "hsl(45, 72%, 55%)"}
+              stroke={direction === "BULLISH" ? "hsl(174, 72%, 46%)" : direction === "BEARISH" ? "hsl(0, 72%, 55%)" : "hsl(45, 72%, 55%)"}
               strokeDasharray="6 4"
               strokeWidth={1.5}
               strokeOpacity={0.7}

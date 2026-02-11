@@ -60,7 +60,7 @@ export function VaultPlans({ selectedPlan, onSelectPlan }: VaultPlansProps) {
                   key={key}
                   className={`border-border bg-background cursor-pointer transition-all duration-200 hover-elevate ${
                     isSelected
-                      ? "ring-2 ring-green-500 border-green-500/50 shadow-[0_0_12px_rgba(34,197,94,0.15)]"
+                      ? "ring-2 ring-primary border-primary/50 shadow-[0_0_12px_rgba(0,188,165,0.15)]"
                       : ""
                   }`}
                   onClick={() => handleSelect(key)}
@@ -68,10 +68,10 @@ export function VaultPlans({ selectedPlan, onSelectPlan }: VaultPlansProps) {
                 >
                   <CardContent className="p-4">
                     <div className="flex items-center justify-between gap-3 mb-2 flex-wrap">
-                      <span className={`text-sm font-bold ${isSelected ? "text-green-400" : ""}`}>
+                      <span className={`text-sm font-bold ${isSelected ? "text-primary" : ""}`}>
                         {plan.label}
                       </span>
-                      <span className="text-lg font-bold text-green-400">{plan.apr} APR</span>
+                      <span className="text-lg font-bold text-neon-value">{plan.apr} APR</span>
                     </div>
                     <div className="space-y-1">
                       <div className="flex items-center gap-1.5 text-[11px] text-muted-foreground">

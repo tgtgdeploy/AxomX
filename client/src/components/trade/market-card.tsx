@@ -42,8 +42,8 @@ export function MarketCard({ market }: MarketCardProps) {
                   {market.targetPrice1}
                 </span>
                 <div className="flex items-center gap-2">
-                  <span className="text-xs text-green-400">{market.yesOdds}%</span>
-                  <Button size="sm" className="h-6 text-[10px] bg-green-500/20 text-green-400">
+                  <span className="text-xs text-neon-value">{market.yesOdds}%</span>
+                  <Button size="sm" className="h-6 text-[10px] bg-primary/20 text-primary">
                     Yes
                   </Button>
                   <Button size="sm" className="h-6 text-[10px] bg-red-500/20 text-red-400">
@@ -58,7 +58,7 @@ export function MarketCard({ market }: MarketCardProps) {
                   </span>
                   <div className="flex items-center gap-2">
                     <span className="text-xs text-red-400">{market.noOdds}%</span>
-                    <Button size="sm" className="h-6 text-[10px] bg-green-500/20 text-green-400">
+                    <Button size="sm" className="h-6 text-[10px] bg-primary/20 text-primary">
                       Yes
                     </Button>
                     <Button size="sm" className="h-6 text-[10px] bg-red-500/20 text-red-400">

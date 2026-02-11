@@ -152,11 +152,11 @@ function PriceCalendar({ data }: { data: CalendarData | undefined }) {
 
           if (hasData) {
             if (change > 3) {
-              bgClass = "bg-green-600/60";
-              textColor = "text-green-200";
+              bgClass = "bg-cyan-600/60";
+              textColor = "text-cyan-200";
             } else if (change > 0) {
-              bgClass = "bg-green-600/30";
-              textColor = "text-green-300";
+              bgClass = "bg-cyan-600/30";
+              textColor = "text-cyan-300";
             } else if (change > -3) {
               bgClass = "bg-red-500/30";
               textColor = "text-red-300";
@@ -253,7 +253,7 @@ export default function MarketPage() {
                   { label: "Fear", value: fgHistory.buckets.fear, color: "text-orange-400" },
                   { label: "Neutral", value: fgHistory.buckets.neutral, color: "text-yellow-400" },
                   { label: "Greed", value: fgHistory.buckets.greed, color: "text-lime-400" },
-                  { label: "Extreme Greed", value: fgHistory.buckets.extremeGreed, color: "text-green-400" },
+                  { label: "Extreme Greed", value: fgHistory.buckets.extremeGreed, color: "text-primary" },
                 ].map((item) => (
                   <div key={item.label} className="flex items-center justify-between gap-2 text-xs">
                     <span className={item.color}>{item.label}</span>
@@ -300,7 +300,7 @@ export default function MarketPage() {
                         </div>
                         <Badge
                           className={`text-[9px] no-default-hover-elevate no-default-active-elevate ${
-                            isPositive ? "bg-green-500/15 text-green-400" : "bg-red-500/15 text-red-400"
+                            isPositive ? "bg-primary/15 text-neon-value" : "bg-red-500/15 text-red-400"
                           }`}
                         >
                           {isPositive ? <TrendingUp className="mr-0.5 h-2.5 w-2.5" /> : <TrendingDown className="mr-0.5 h-2.5 w-2.5" />}
@@ -310,7 +310,7 @@ export default function MarketPage() {
                     </div>
                     <div className="flex items-center justify-between gap-2 mt-2 text-[10px] text-muted-foreground flex-wrap">
                       <span>Vol: {formatCompact(coin.volume)}</span>
-                      <span className={coin.netFlow >= 0 ? "text-green-400" : "text-red-400"}>
+                      <span className={coin.netFlow >= 0 ? "text-neon-value" : "text-red-400"}>
                         Net Flow: {coin.netFlow >= 0 ? "+" : ""}{formatCompact(Math.abs(coin.netFlow))}
                       </span>
                     </div>

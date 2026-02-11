@@ -54,7 +54,7 @@ export function ExchangeDepth({ symbol }: ExchangeDepthProps) {
             <span className="w-10 text-[10px] text-muted-foreground text-right">{ex.buy}%</span>
             <div className="flex-1 flex h-4 overflow-hidden rounded-sm">
               <div
-                className="bg-green-500/50 transition-all duration-700 ease-out"
+                className="bg-primary/50 transition-all duration-700 ease-out"
                 style={{ width: mounted ? `${ex.buy}%` : "0%" }}
               />
               <div

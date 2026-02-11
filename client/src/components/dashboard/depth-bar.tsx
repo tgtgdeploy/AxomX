@@ -18,7 +18,7 @@ export function DepthBar({ buyPercent, sellPercent, isLoading, fearGreedIndex, f
   const indexColor =
     fearGreedIndex !== undefined
       ? fearGreedIndex >= 60
-        ? "text-green-400"
+        ? "text-neon-value"
         : fearGreedIndex <= 40
           ? "text-red-400"
           : "text-yellow-400"
@@ -27,7 +27,7 @@ export function DepthBar({ buyPercent, sellPercent, isLoading, fearGreedIndex, f
   const labelColor =
     fearGreedIndex !== undefined
       ? fearGreedIndex >= 60
-        ? "bg-green-500/15 text-green-400"
+        ? "bg-primary/15 text-primary"
         : fearGreedIndex <= 40
           ? "bg-red-500/15 text-red-400"
           : "bg-yellow-500/15 text-yellow-400"
@@ -57,12 +57,12 @@ export function DepthBar({ buyPercent, sellPercent, isLoading, fearGreedIndex, f
         <div className="flex items-center gap-2">
           <div className="flex-1">
             <div className="flex items-center justify-between mb-1.5 flex-wrap gap-1">
-              <span className="text-xs text-green-400" data-testid="text-longs-percent">Longs: {buyPercent}%</span>
+              <span className="text-xs text-neon-value" data-testid="text-longs-percent">Longs: {buyPercent}%</span>
               <span className="text-xs text-red-400" data-testid="text-shorts-percent">Shorts: {sellPercent}%</span>
             </div>
             <div className="flex h-3 overflow-hidden rounded-full" data-testid="bar-depth-ratio">
               <div
-                className="bg-green-500/70 transition-all duration-700 ease-out"
+                className="bg-primary/70 transition-all duration-700 ease-out"
                 style={{
                   width: `${buyPercent}%`,
                   animation: "pulseGlow 3s ease-in-out infinite",

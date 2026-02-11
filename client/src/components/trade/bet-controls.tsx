@@ -94,17 +94,17 @@ export function BetControls({ amount, onAmountChange, duration, onDurationChange
           <Button
             onClick={() => handleBet("up")}
             disabled={isPending}
-            className="flex-1 relative overflow-visible bg-green-600 text-white border-green-700"
+            className="flex-1 relative overflow-visible bg-cyan-600 text-white border-cyan-700"
             data-testid="button-bull"
           >
             Bull {BET_DEFAULTS.payoutPercent}%
-            {activeDir === "up" && <span className="absolute inset-0 rounded-md animate-ping bg-green-400/20" />}
+            {activeDir === "up" && <span className="absolute inset-0 rounded-md animate-ping bg-primary/20" />}
           </Button>
         </div>
 
         <Button
           variant="outline"
-          className="w-full text-green-400 border-green-500/30"
+          className="w-full text-primary border-primary/30"
           data-testid="button-ai-smarty"
         >
           <Sparkles className="h-4 w-4 mr-1.5" />

@@ -51,7 +51,7 @@ export function VaultChart() {
           {formatUSD(totalValue)}
         </span>
         {changePercent > 0 && (
-          <Badge className="bg-green-500/15 text-green-400 text-xs no-default-hover-elevate no-default-active-elevate">
+          <Badge className="bg-primary/15 text-neon-value text-xs no-default-hover-elevate no-default-active-elevate">
             <TrendingUp className="mr-1 h-3 w-3" />+{changePercent.toFixed(2)}%
           </Badge>
         )}
@@ -61,11 +61,11 @@ export function VaultChart() {
           <AreaChart data={chartData}>
             <defs>
               <linearGradient id="vaultGrad" x1="0" y1="0" x2="0" y2="1">
-                <stop offset="5%" stopColor="hsl(142, 72%, 45%)" stopOpacity={0.25} />
-                <stop offset="95%" stopColor="hsl(142, 72%, 45%)" stopOpacity={0} />
+                <stop offset="5%" stopColor="hsl(174, 72%, 46%)" stopOpacity={0.25} />
+                <stop offset="95%" stopColor="hsl(174, 72%, 46%)" stopOpacity={0} />
               </linearGradient>
             </defs>
-            <Area type="monotone" dataKey="value" stroke="hsl(142, 72%, 45%)" strokeWidth={2} fill="url(#vaultGrad)" />
+            <Area type="monotone" dataKey="value" stroke="hsl(174, 72%, 46%)" strokeWidth={2} fill="url(#vaultGrad)" />
           </AreaChart>
         </ResponsiveContainer>
       </div>

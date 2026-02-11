@@ -36,7 +36,7 @@ export function BottomNav() {
                 }`}
                 data-testid={`nav-${tab.label.toLowerCase()}`}
               >
-                <tab.icon className={`h-5 w-5 ${isActive ? "drop-shadow-[0_0_6px_hsl(142,72%,45%,0.5)]" : ""}`} />
+                <tab.icon className={`h-5 w-5 ${isActive ? "drop-shadow-[0_0_8px_rgba(0,188,165,0.6)]" : ""}`} />
                 <span className="text-[10px] font-medium">{tab.label}</span>
               </Button>
             </Link>

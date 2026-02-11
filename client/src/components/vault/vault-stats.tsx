@@ -54,8 +54,8 @@ export function VaultStats() {
             <Clock className="h-3 w-3" /> Max APR
           </div>
           <div className="flex items-center gap-2">
-            <span className="text-lg font-bold text-green-400" data-testid="text-max-apr">{maxApr}%</span>
-            <Badge className="text-[10px] bg-green-500/15 text-green-400 no-default-hover-elevate no-default-active-elevate">APR</Badge>
+            <span className="text-lg font-bold text-neon-value" data-testid="text-max-apr">{maxApr}%</span>
+            <Badge className="text-[10px] bg-primary/15 text-primary no-default-hover-elevate no-default-active-elevate">APR</Badge>
           </div>
         </CardContent>
       </Card>
