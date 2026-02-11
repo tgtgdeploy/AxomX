@@ -651,21 +651,28 @@ export default function StrategyPage() {
       <Dialog open={investmentOpen} onOpenChange={setInvestmentOpen}>
         <DialogContent className="bg-card border-border max-w-md max-h-[85vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle className="text-sm font-bold" data-testid="text-investment-dialog-title">
-              Investment
-            </DialogTitle>
-            <DialogDescription className="text-xs text-muted-foreground">
-              Manage API connections, view P&L, and track copy trading performance.
-            </DialogDescription>
+            <div className="flex items-center gap-2">
+              <div className="h-8 w-8 rounded-full bg-gradient-to-br from-emerald-500 to-teal-600 flex items-center justify-center" style={{ boxShadow: "0 0 12px rgba(16,185,129,0.3)" }}>
+                <Wallet className="h-4 w-4 text-white" />
+              </div>
+              <div>
+                <DialogTitle className="text-base font-bold" data-testid="text-investment-dialog-title">
+                  Investment
+                </DialogTitle>
+                <DialogDescription className="text-[11px] text-muted-foreground">
+                  Manage API, view P&L, and track copy trading
+                </DialogDescription>
+              </div>
+            </div>
           </DialogHeader>
 
           <div className="space-y-4">
-            <div className="flex flex-wrap gap-2" data-testid="investment-exchange-tabs">
+            <div className="flex flex-wrap gap-1.5" data-testid="investment-exchange-tabs">
               {EXCHANGES.map((ex) => (
                 <Badge
                   key={ex.name}
                   variant={investmentExchange === ex.name ? "default" : "outline"}
-                  className={`text-[10px] cursor-pointer ${investmentExchange === ex.name ? "" : ""}`}
+                  className={`text-[10px] cursor-pointer ${investmentExchange === ex.name ? "bg-gradient-to-r from-emerald-600 to-teal-500 border-emerald-500/50 text-white" : ""}`}
                   onClick={() => setInvestmentExchange(ex.name)}
                   data-testid={`badge-inv-exchange-${ex.tag}`}
                 >
@@ -677,44 +684,43 @@ export default function StrategyPage() {
               </Badge>
             </div>
 
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <div className="text-[10px] text-muted-foreground">Position Amount</div>
-                <div className="text-sm font-bold" data-testid="text-inv-position">0.00</div>
-              </div>
-              <div>
-                <div className="text-[10px] text-muted-foreground">P&L</div>
-                <div className="text-sm font-bold" data-testid="text-inv-pnl">
-                  0.00 <span className="text-emerald-400 text-[10px]">(0.00%)</span>
-                </div>
-              </div>
+            <div className="grid grid-cols-2 gap-3">
+              <Card className="border-border bg-background">
+                <CardContent className="p-3">
+                  <div className="text-[10px] text-muted-foreground mb-0.5">Position Amount</div>
+                  <div className="text-lg font-bold tabular-nums" data-testid="text-inv-position">0.00</div>
+                </CardContent>
+              </Card>
+              <Card className="border-border bg-background">
+                <CardContent className="p-3">
+                  <div className="text-[10px] text-muted-foreground mb-0.5">P&L</div>
+                  <div className="text-lg font-bold tabular-nums" data-testid="text-inv-pnl">
+                    0.00 <span className="text-emerald-400 text-[10px]">(0.00%)</span>
+                  </div>
+                </CardContent>
+              </Card>
             </div>
 
             <Card className="border-border bg-background">
               <CardContent className="p-3">
                 <div className="flex items-center justify-between gap-2 flex-wrap">
-                  <div>
-                    <div className="text-[10px] text-muted-foreground">Total Assets</div>
-                    <div className="flex items-center gap-2 flex-wrap">
-                      <span className="text-xs text-muted-foreground">All</span>
-                      <RefreshCw className="h-3 w-3 text-muted-foreground cursor-pointer" />
-                    </div>
-                  </div>
+                  <div className="text-[10px] text-muted-foreground font-medium uppercase tracking-wider">Total Assets</div>
+                  <RefreshCw className="h-3 w-3 text-muted-foreground cursor-pointer" />
                 </div>
-                <div className="text-2xl font-bold mt-1" data-testid="text-inv-total-assets">$0</div>
-                <div className="mt-2 space-y-1">
+                <div className="text-2xl font-bold mt-1 bg-gradient-to-r from-emerald-400 to-teal-400 bg-clip-text text-transparent" data-testid="text-inv-total-assets">$0</div>
+                <div className="mt-2 space-y-1.5">
                   <div className="flex items-center justify-between gap-2 text-xs text-muted-foreground flex-wrap">
                     <span>Unrealized P&L</span>
-                    <span className="font-medium text-foreground">$0.00</span>
+                    <span className="font-medium text-foreground tabular-nums">$0.00</span>
                   </div>
                   <div className="flex items-center justify-between gap-2 text-xs text-muted-foreground flex-wrap">
                     <span>Completed Trades</span>
                     <span className="font-medium text-foreground">--</span>
                   </div>
-                  <div className="border-t border-border/50 pt-1 mt-1">
+                  <div className="border-t border-border/50 pt-1.5 mt-1.5">
                     <div className="flex items-center justify-between gap-2 text-xs text-muted-foreground flex-wrap">
                       <span>Perpetual</span>
-                      <span className="font-medium text-foreground">$0</span>
+                      <span className="font-medium text-foreground tabular-nums">$0</span>
                     </div>
                     <div className="flex items-center justify-between gap-2 text-xs text-muted-foreground flex-wrap">
                       <span>Spot</span>
@@ -757,15 +763,27 @@ export default function StrategyPage() {
             </div>
 
             <div className="grid grid-cols-3 gap-2">
-              <Button variant="outline" className="text-xs" data-testid="button-inv-deposit" onClick={() => setDepositOpen(true)}>
+              <Button
+                className="text-xs bg-gradient-to-r from-emerald-600 to-teal-500 border-emerald-500/50 text-white"
+                data-testid="button-inv-deposit"
+                onClick={() => setDepositOpen(true)}
+              >
                 <Wallet className="h-3.5 w-3.5 mr-1" />
                 Deposit
               </Button>
-              <Button variant="outline" className="text-xs" data-testid="button-inv-bind-api" onClick={() => setBindApiOpen(true)}>
+              <Button
+                className="text-xs bg-gradient-to-r from-cyan-600 to-blue-500 border-cyan-500/50 text-white"
+                data-testid="button-inv-bind-api"
+                onClick={() => setBindApiOpen(true)}
+              >
                 <Key className="h-3.5 w-3.5 mr-1" />
                 Bind API
               </Button>
-              <Button variant="outline" className="text-xs" data-testid="button-inv-bind-telegram" onClick={() => setBindTelegramOpen(true)}>
+              <Button
+                className="text-xs bg-gradient-to-r from-blue-600 to-indigo-500 border-blue-500/50 text-white"
+                data-testid="button-inv-bind-telegram"
+                onClick={() => setBindTelegramOpen(true)}
+              >
                 <MessageCircle className="h-3.5 w-3.5 mr-1" />
                 Bind TG
               </Button>
@@ -773,22 +791,25 @@ export default function StrategyPage() {
 
             <Card className="border-border bg-background">
               <CardContent className="p-3">
-                <h4 className="text-xs font-bold mb-3" data-testid="text-copy-records-title">Copy Trading Records</h4>
+                <h4 className="text-xs font-bold mb-3 flex items-center gap-1.5" data-testid="text-copy-records-title">
+                  <TrendingUp className="h-3.5 w-3.5 text-emerald-400" />
+                  Copy Trading Records
+                </h4>
                 <div className="grid grid-cols-2 gap-3">
                   <div>
-                    <div className="text-lg font-bold" data-testid="text-cumulative-return">0%</div>
+                    <div className="text-lg font-bold tabular-nums" data-testid="text-cumulative-return">0%</div>
                     <div className="text-[10px] text-muted-foreground">Cumulative Return</div>
                   </div>
                   <div>
-                    <div className="text-lg font-bold" data-testid="text-total-profit">0</div>
+                    <div className="text-lg font-bold tabular-nums" data-testid="text-total-profit">0</div>
                     <div className="text-[10px] text-muted-foreground">Total Profit</div>
                   </div>
                   <div>
-                    <div className="text-lg font-bold text-emerald-400" data-testid="text-win-count">0</div>
+                    <div className="text-lg font-bold text-emerald-400 tabular-nums" data-testid="text-win-count">0</div>
                     <div className="text-[10px] text-muted-foreground">Win Count</div>
                   </div>
                   <div>
-                    <div className="text-lg font-bold text-red-400" data-testid="text-loss-count">0</div>
+                    <div className="text-lg font-bold text-red-400 tabular-nums" data-testid="text-loss-count">0</div>
                     <div className="text-[10px] text-muted-foreground">Loss Count</div>
                   </div>
                 </div>
@@ -800,7 +821,7 @@ export default function StrategyPage() {
                 <div className="flex items-center gap-2 mb-2 flex-wrap">
                   <Badge
                     variant={copyFilterType === "all" ? "default" : "outline"}
-                    className="text-[10px] cursor-pointer"
+                    className={`text-[10px] cursor-pointer ${copyFilterType === "all" ? "bg-gradient-to-r from-emerald-600 to-teal-500 border-emerald-500/50 text-white" : ""}`}
                     onClick={() => setCopyFilterType("all")}
                     data-testid="badge-filter-all"
                   >
@@ -812,7 +833,7 @@ export default function StrategyPage() {
                   <span>Select Start Date - Select End Date</span>
                 </div>
                 <div className="flex gap-2">
-                  <Button size="sm" variant="outline" className="text-xs" data-testid="button-filter-search">
+                  <Button size="sm" className="text-xs bg-gradient-to-r from-emerald-600 to-teal-500 border-emerald-500/50 text-white" data-testid="button-filter-search">
                     <Search className="h-3 w-3 mr-1" />
                     Search
                   </Button>
@@ -828,40 +849,47 @@ export default function StrategyPage() {
       </Dialog>
 
       <Dialog open={subscribeOpen} onOpenChange={setSubscribeOpen}>
-        <DialogContent className="bg-card border-border">
+        <DialogContent className="bg-card border-border max-w-sm">
           <DialogHeader>
-            <DialogTitle className="text-sm font-bold" data-testid="text-subscribe-dialog-title">
-              Subscribe to Strategy
-            </DialogTitle>
-            <DialogDescription className="text-xs text-muted-foreground">
-              Allocate capital to follow this strategy automatically.
-            </DialogDescription>
+            <div className="flex items-center gap-2">
+              <div className="h-8 w-8 rounded-full bg-gradient-to-br from-emerald-500 to-teal-600 flex items-center justify-center" style={{ boxShadow: "0 0 12px rgba(16,185,129,0.3)" }}>
+                <TrendingUp className="h-4 w-4 text-white" />
+              </div>
+              <div>
+                <DialogTitle className="text-base font-bold" data-testid="text-subscribe-dialog-title">
+                  Subscribe to Strategy
+                </DialogTitle>
+                <DialogDescription className="text-[11px] text-muted-foreground">
+                  Allocate capital to follow automatically
+                </DialogDescription>
+              </div>
+            </div>
           </DialogHeader>
           {selectedStrategy && (
             <div className="space-y-4">
               <div>
-                <div className="text-xs font-semibold mb-2">{selectedStrategy.name}</div>
+                <div className="text-sm font-bold mb-2">{selectedStrategy.name}</div>
                 <div className="grid grid-cols-3 gap-2">
                   <Card className="border-border bg-background">
-                    <CardContent className="p-2 text-center">
+                    <CardContent className="p-2.5 text-center">
                       <div className="text-[10px] text-muted-foreground">Leverage</div>
-                      <div className="text-xs font-bold" data-testid="text-dialog-leverage">
+                      <div className="text-sm font-bold" data-testid="text-dialog-leverage">
                         {selectedStrategy.leverage}
                       </div>
                     </CardContent>
                   </Card>
                   <Card className="border-border bg-background">
-                    <CardContent className="p-2 text-center">
+                    <CardContent className="p-2.5 text-center">
                       <div className="text-[10px] text-muted-foreground">Win Rate</div>
-                      <div className="text-xs font-bold text-neon-value" data-testid="text-dialog-winrate">
+                      <div className="text-sm font-bold text-emerald-400" data-testid="text-dialog-winrate">
                         {Number(selectedStrategy.winRate).toFixed(1)}%
                       </div>
                     </CardContent>
                   </Card>
                   <Card className="border-border bg-background">
-                    <CardContent className="p-2 text-center">
+                    <CardContent className="p-2.5 text-center">
                       <div className="text-[10px] text-muted-foreground">Monthly</div>
-                      <div className="text-xs font-bold text-neon-value" data-testid="text-dialog-return">
+                      <div className="text-sm font-bold text-emerald-400" data-testid="text-dialog-return">
                         +{Number(selectedStrategy.monthlyReturn).toFixed(1)}%
                       </div>
                     </CardContent>
@@ -869,7 +897,7 @@ export default function StrategyPage() {
                 </div>
               </div>
               <div>
-                <label className="text-xs text-muted-foreground mb-1 block">Capital Amount (USDT)</label>
+                <label className="text-xs text-muted-foreground mb-1.5 block">Capital Amount (USDT)</label>
                 <Input
                   type="number"
                   placeholder="Enter amount"
@@ -880,17 +908,18 @@ export default function StrategyPage() {
               </div>
             </div>
           )}
-          <DialogFooter>
-            <Button variant="secondary" onClick={() => setSubscribeOpen(false)} data-testid="button-cancel-subscribe">
+          <DialogFooter className="gap-2 sm:gap-0">
+            <Button variant="outline" onClick={() => setSubscribeOpen(false)} data-testid="button-cancel-subscribe">
               Cancel
             </Button>
             <Button
+              className="bg-gradient-to-r from-emerald-600 to-teal-500 border-emerald-500/50 text-white"
               onClick={handleConfirmSubscribe}
               disabled={subscribeMutation.isPending}
               data-testid="button-confirm-subscribe"
             >
               <TrendingUp className="mr-1 h-4 w-4" />
-              {subscribeMutation.isPending ? "Subscribing..." : "Confirm"}
+              {subscribeMutation.isPending ? "Subscribing..." : "Confirm Subscribe"}
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -899,10 +928,17 @@ export default function StrategyPage() {
       <Dialog open={depositOpen} onOpenChange={setDepositOpen}>
         <DialogContent className="bg-card border-border max-w-sm">
           <DialogHeader>
-            <DialogTitle className="text-sm font-bold" data-testid="text-deposit-dialog-title">Deposit Funds</DialogTitle>
-            <DialogDescription className="text-xs text-muted-foreground">
-              Transfer funds to your {investmentExchange} account for copy trading.
-            </DialogDescription>
+            <div className="flex items-center gap-2">
+              <div className="h-8 w-8 rounded-full bg-gradient-to-br from-emerald-500 to-teal-600 flex items-center justify-center" style={{ boxShadow: "0 0 12px rgba(16,185,129,0.3)" }}>
+                <Wallet className="h-4 w-4 text-white" />
+              </div>
+              <div>
+                <DialogTitle className="text-base font-bold" data-testid="text-deposit-dialog-title">Deposit Funds</DialogTitle>
+                <DialogDescription className="text-[11px] text-muted-foreground">
+                  Transfer to {investmentExchange} for copy trading
+                </DialogDescription>
+              </div>
+            </div>
           </DialogHeader>
           <div className="space-y-4">
             <div>
@@ -912,7 +948,7 @@ export default function StrategyPage() {
                   <Badge
                     key={net}
                     variant={depositNetwork === net ? "default" : "outline"}
-                    className="text-[10px] cursor-pointer"
+                    className={`text-[10px] cursor-pointer ${depositNetwork === net ? "bg-gradient-to-r from-emerald-600 to-teal-500 border-emerald-500/50 text-white" : ""}`}
                     onClick={() => setDepositNetwork(net)}
                     data-testid={`badge-network-${net}`}
                   >
@@ -967,9 +1003,10 @@ export default function StrategyPage() {
               </div>
             </div>
           </div>
-          <DialogFooter>
-            <Button variant="secondary" onClick={() => setDepositOpen(false)} data-testid="button-cancel-deposit">Cancel</Button>
+          <DialogFooter className="gap-2 sm:gap-0">
+            <Button variant="outline" onClick={() => setDepositOpen(false)} data-testid="button-cancel-deposit">Cancel</Button>
             <Button
+              className="bg-gradient-to-r from-emerald-600 to-teal-500 border-emerald-500/50 text-white"
               onClick={() => {
                 if (!walletAddr) {
                   toast({ title: "Connect Wallet", description: "Please connect your wallet first", variant: "destructive" });
@@ -996,10 +1033,17 @@ export default function StrategyPage() {
       <Dialog open={bindApiOpen} onOpenChange={setBindApiOpen}>
         <DialogContent className="bg-card border-border max-w-sm">
           <DialogHeader>
-            <DialogTitle className="text-sm font-bold" data-testid="text-bind-api-dialog-title">Bind {investmentExchange} API</DialogTitle>
-            <DialogDescription className="text-xs text-muted-foreground">
-              Connect your exchange API keys for automated copy trading execution.
-            </DialogDescription>
+            <div className="flex items-center gap-2">
+              <div className="h-8 w-8 rounded-full bg-gradient-to-br from-cyan-500 to-blue-600 flex items-center justify-center" style={{ boxShadow: "0 0 12px rgba(6,182,212,0.3)" }}>
+                <Key className="h-4 w-4 text-white" />
+              </div>
+              <div>
+                <DialogTitle className="text-base font-bold" data-testid="text-bind-api-dialog-title">Bind {investmentExchange} API</DialogTitle>
+                <DialogDescription className="text-[11px] text-muted-foreground">
+                  Connect API keys for automated copy trading
+                </DialogDescription>
+              </div>
+            </div>
           </DialogHeader>
           <div className="space-y-4">
             <Card className="border-border bg-background">
@@ -1064,9 +1108,10 @@ export default function StrategyPage() {
               </Badge>
             </div>
           </div>
-          <DialogFooter>
-            <Button variant="secondary" onClick={() => setBindApiOpen(false)} data-testid="button-cancel-bind-api">Cancel</Button>
+          <DialogFooter className="gap-2 sm:gap-0">
+            <Button variant="outline" onClick={() => setBindApiOpen(false)} data-testid="button-cancel-bind-api">Cancel</Button>
             <Button
+              className="bg-gradient-to-r from-cyan-600 to-blue-500 border-cyan-500/50 text-white"
               onClick={() => {
                 if (!apiKey.trim() || !apiSecret.trim()) {
                   toast({ title: "Missing Fields", description: "API Key and Secret are required", variant: "destructive" });
@@ -1090,10 +1135,17 @@ export default function StrategyPage() {
       <Dialog open={bindTelegramOpen} onOpenChange={setBindTelegramOpen}>
         <DialogContent className="bg-card border-border max-w-sm">
           <DialogHeader>
-            <DialogTitle className="text-sm font-bold" data-testid="text-bind-telegram-dialog-title">Bind Telegram</DialogTitle>
-            <DialogDescription className="text-xs text-muted-foreground">
-              Receive trade notifications and alerts via Telegram.
-            </DialogDescription>
+            <div className="flex items-center gap-2">
+              <div className="h-8 w-8 rounded-full bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center" style={{ boxShadow: "0 0 12px rgba(59,130,246,0.3)" }}>
+                <MessageCircle className="h-4 w-4 text-white" />
+              </div>
+              <div>
+                <DialogTitle className="text-base font-bold" data-testid="text-bind-telegram-dialog-title">Bind Telegram</DialogTitle>
+                <DialogDescription className="text-[11px] text-muted-foreground">
+                  Receive trade notifications via Telegram
+                </DialogDescription>
+              </div>
+            </div>
           </DialogHeader>
           <div className="space-y-4">
             <Card className="border-border bg-background">
@@ -1139,9 +1191,10 @@ export default function StrategyPage() {
               </div>
             </div>
           </div>
-          <DialogFooter>
-            <Button variant="secondary" onClick={() => setBindTelegramOpen(false)} data-testid="button-cancel-bind-telegram">Cancel</Button>
+          <DialogFooter className="gap-2 sm:gap-0">
+            <Button variant="outline" onClick={() => setBindTelegramOpen(false)} data-testid="button-cancel-bind-telegram">Cancel</Button>
             <Button
+              className="bg-gradient-to-r from-blue-600 to-indigo-500 border-blue-500/50 text-white"
               onClick={() => {
                 if (!telegramUsername.trim()) {
                   toast({ title: "Missing Username", description: "Please enter your Telegram username", variant: "destructive" });

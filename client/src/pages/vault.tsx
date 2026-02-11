@@ -424,7 +424,7 @@ export default function Vault() {
           </div>
           <DialogFooter>
             <Button
-              className="w-full bg-cyan-600 text-white border-cyan-700"
+              className="w-full bg-gradient-to-r from-emerald-600 to-teal-500 border-emerald-500/50 text-white"
               onClick={handleDeposit}
               disabled={depositMutation.isPending || !walletAddress}
               data-testid="button-confirm-deposit"
@@ -503,8 +503,7 @@ export default function Vault() {
           </div>
           <DialogFooter>
             <Button
-              variant="secondary"
-              className="w-full"
+              className="w-full bg-gradient-to-r from-emerald-600 to-teal-500 border-emerald-500/50 text-white"
               onClick={() => handleWithdraw(selectedPositionId)}
               disabled={withdrawMutation.isPending || !selectedPositionId || !walletAddress}
               data-testid="button-confirm-redeem"

@@ -25,8 +25,8 @@ interface PriceChartProps {
   color?: string;
   forecast?: ForecastData | null;
   forecastLoading?: boolean;
-  selectedTimeframe: ChartTimeframe;
-  onTimeframeChange: (tf: ChartTimeframe) => void;
+  selectedTimeframe?: ChartTimeframe;
+  onTimeframeChange?: (tf: ChartTimeframe) => void;
 }
 
 const TIMEFRAMES: { key: ChartTimeframe; label: string }[] = [
@@ -117,6 +117,7 @@ export function PriceChart({
 
   return (
     <div data-testid="chart-price-container">
+      {onTimeframeChange && (
       <div className="flex items-center gap-1 mb-2 flex-wrap" data-testid="timeframe-selector">
         {TIMEFRAMES.map(tf => (
           <Button
@@ -146,6 +147,7 @@ export function PriceChart({
           </Badge>
         )}
       </div>
+      )}
 
       {isLoading || !data || data.length === 0 ? (
         <Skeleton className="h-52 w-full rounded-md" />
