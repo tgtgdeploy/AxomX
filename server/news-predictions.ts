@@ -90,7 +90,7 @@ export async function getNewsPredictions(): Promise<NewsPrediction[]> {
     const newsText = top8
       .map(
         (a, i) =>
-          `[${i + 1}] "${a.title}" - ${a.source.name} (${a.description?.slice(0, 120) || ""})`
+          `${i + 1}. "${a.title}" - ${a.source.name} (${a.description?.slice(0, 120) || ""})`
       )
       .join("\n");
 
@@ -99,37 +99,57 @@ export async function getNewsPredictions(): Promise<NewsPrediction[]> {
       messages: [
         {
           role: "system",
-          content: `You are a crypto market analyst. For each news article, analyze its impact on crypto prices. Return a JSON array with objects containing: index (1-based), prediction (BULLISH/BEARISH/NEUTRAL), confidence (0-100), impact (HIGH/MEDIUM/LOW), reasoning (1 short sentence), asset (BTC/ETH/SOL/BNB/DOGE/XRP/CRYPTO).`,
+          content: `You are a crypto market analyst. Analyze each news headline for crypto market impact.
+Return a JSON object with key "items" containing an array. Each element must have:
+- "i": article number (1-8)
+- "p": prediction ("BULLISH", "BEARISH", or "NEUTRAL")
+- "c": confidence score (0-100)
+- "imp": impact level ("HIGH", "MEDIUM", or "LOW")
+- "r": one sentence reasoning about market impact
+- "a": primary asset affected ("BTC","ETH","SOL","BNB","DOGE","XRP","CRYPTO")
+
+Example: {"items":[{"i":1,"p":"BULLISH","c":75,"imp":"HIGH","r":"Institutional buying signals strong demand","a":"BTC"}]}`,
         },
         {
           role: "user",
-          content: `Analyze these crypto news articles for market impact:\n${newsText}`,
+          content: `Analyze these headlines:\n${newsText}`,
         },
       ],
-      max_tokens: 800,
+      max_tokens: 1000,
       response_format: { type: "json_object" },
     });
 
     const content = response.choices[0]?.message?.content || "{}";
-    const parsed = JSON.parse(content);
-    const analyses = parsed.analyses || parsed.predictions || parsed.results || [];
+    let parsed: any;
+    try {
+      parsed = JSON.parse(content);
+    } catch {
+      console.error("Failed to parse OpenAI news response:", content);
+      parsed = {};
+    }
+
+    const items: any[] = parsed.items || parsed.analyses || parsed.predictions || parsed.results || [];
 
     const predictions: NewsPrediction[] = top8.map((article, i) => {
-      const analysis = Array.isArray(analyses)
-        ? analyses.find((a: any) => a.index === i + 1) || analyses[i]
-        : null;
+      const match = items.find((item: any) => item.i === i + 1 || item.index === i + 1) || items[i];
+
+      const pred = match?.p || match?.prediction || "NEUTRAL";
+      const conf = match?.c || match?.confidence || 50;
+      const imp = match?.imp || match?.impact || "MEDIUM";
+      const reason = match?.r || match?.reasoning || "Market impact analysis pending";
+      const asset = match?.a || match?.asset || detectAsset(article.title + " " + (article.description || ""));
 
       return {
-        id: `news-${i}-${Date.now()}`,
+        id: `news-${i}-${now}`,
         headline: article.title,
         source: article.source.name,
         publishedAt: article.publishedAt,
         url: article.url,
-        asset: analysis?.asset || detectAsset(article.title + " " + (article.description || "")),
-        prediction: analysis?.prediction || "NEUTRAL",
-        confidence: analysis?.confidence || 50,
-        impact: analysis?.impact || "MEDIUM",
-        reasoning: analysis?.reasoning || "Analyzing market impact...",
+        asset,
+        prediction: (["BULLISH", "BEARISH", "NEUTRAL"].includes(pred) ? pred : "NEUTRAL") as "BULLISH" | "BEARISH" | "NEUTRAL",
+        confidence: Math.min(100, Math.max(0, Number(conf) || 50)),
+        impact: (["HIGH", "MEDIUM", "LOW"].includes(imp) ? imp : "MEDIUM") as "HIGH" | "MEDIUM" | "LOW",
+        reasoning: reason,
       };
     });
 
@@ -141,7 +161,7 @@ export async function getNewsPredictions(): Promise<NewsPrediction[]> {
     console.error("News AI analysis error:", error);
 
     const fallback: NewsPrediction[] = top8.map((article, i) => ({
-      id: `news-${i}-${Date.now()}`,
+      id: `news-${i}-${now}`,
       headline: article.title,
       source: article.source.name,
       publishedAt: article.publishedAt,
@@ -150,7 +170,7 @@ export async function getNewsPredictions(): Promise<NewsPrediction[]> {
       prediction: "NEUTRAL" as const,
       confidence: 50,
       impact: "MEDIUM" as const,
-      reasoning: "AI analysis unavailable",
+      reasoning: "AI analysis temporarily unavailable",
     }));
 
     newsCache.data = fallback;

@@ -14,9 +14,9 @@ import {
   Crown, Zap, Shield, CheckCircle2, TrendingUp, TrendingDown,
   Minus, Clock, Brain, Info, RefreshCw, Wallet, ChevronLeft, ChevronRight,
   Search, RotateCcw, Send, Copy, Eye, EyeOff, Key, Link2, MessageCircle,
-  Newspaper, Globe, ExternalLink, BarChart3, Sparkles,
+  Newspaper, Globe, ExternalLink, BarChart3, Sparkles, DollarSign, Trophy,
 } from "lucide-react";
-import type { Strategy, StrategySubscription, Profile, HedgePosition, InsurancePurchase, AiPrediction } from "@shared/schema";
+import type { Strategy, StrategySubscription, Profile, HedgePosition, InsurancePurchase, AiPrediction, PredictionBet } from "@shared/schema";
 import { StrategyHeader } from "@/components/strategy/strategy-header";
 import { StrategyCard } from "@/components/strategy/strategy-card";
 
@@ -61,6 +61,13 @@ export default function StrategyPage() {
   const [bindTelegramOpen, setBindTelegramOpen] = useState(false);
   const [telegramUsername, setTelegramUsername] = useState("");
   const [predSubTab, setPredSubTab] = useState<"polymarket" | "news" | "ai">("polymarket");
+  const [betDialogOpen, setBetDialogOpen] = useState(false);
+  const [betMarket, setBetMarket] = useState<{
+    id: string; question: string; type: string;
+    choices: { label: string; odds: number; color: string }[];
+  } | null>(null);
+  const [betChoice, setBetChoice] = useState("");
+  const [betAmount, setBetAmount] = useState("");
 
   const { data: strategies = [], isLoading } = useQuery<Strategy[]>({
     queryKey: ["/api/strategies"],
@@ -132,6 +139,39 @@ export default function StrategyPage() {
     staleTime: 5 * 60_000,
     refetchInterval: 10 * 60_000,
   });
+
+  const { data: myBets = [] } = useQuery<PredictionBet[]>({
+    queryKey: ["/api/prediction-bets", walletAddr],
+    enabled: !!walletAddr,
+  });
+
+  const placeBetMutation = useMutation({
+    mutationFn: async (data: { marketId: string; marketType: string; question: string; choice: string; odds: number; amount: number }) => {
+      const res = await apiRequest("POST", "/api/prediction-bets", { ...data, walletAddress: walletAddr });
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/prediction-bets", walletAddr] });
+      setBetDialogOpen(false);
+      setBetAmount("");
+      setBetChoice("");
+      toast({ title: "Bet Placed", description: "Your prediction bet has been placed successfully" });
+    },
+    onError: (err: any) => {
+      toast({ title: "Error", description: err.message || "Failed to place bet", variant: "destructive" });
+    },
+  });
+
+  const openBetDialog = (id: string, question: string, type: string, choices: { label: string; odds: number; color: string }[]) => {
+    if (!walletAddr) {
+      toast({ title: "Connect Wallet", description: "Please connect your wallet to place bets", variant: "destructive" });
+      return;
+    }
+    setBetMarket({ id, question, type, choices });
+    setBetChoice(choices[0]?.label || "");
+    setBetAmount("");
+    setBetDialogOpen(true);
+  };
 
   const subscribeMutation = useMutation({
     mutationFn: async (data: { walletAddress: string; strategyId: string; amount: number }) => {
@@ -590,61 +630,86 @@ export default function StrategyPage() {
               <div className="space-y-2">
                 {polyLoading ? (
                   Array.from({ length: 4 }).map((_, i) => (
-                    <Skeleton key={i} className="h-20 w-full rounded-md" />
+                    <Skeleton key={i} className="h-28 w-full rounded-md" />
                   ))
                 ) : polymarkets.length > 0 ? (
                   polymarkets.map((market) => {
                     const yesPercent = (market.yesPrice * 100).toFixed(1);
                     const noPercent = (market.noPrice * 100).toFixed(1);
+                    const yesOdds = market.yesPrice > 0 ? (1 / market.yesPrice).toFixed(2) : "0";
+                    const noOdds = market.noPrice > 0 ? (1 / market.noPrice).toFixed(2) : "0";
                     const vol = market.volume >= 1_000_000
                       ? `$${(market.volume / 1_000_000).toFixed(1)}M`
                       : market.volume >= 1_000
                         ? `$${(market.volume / 1_000).toFixed(0)}K`
                         : `$${market.volume.toFixed(0)}`;
                     const endStr = market.endDate
-                      ? new Date(market.endDate).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })
+                      ? new Date(market.endDate).toLocaleDateString("en-US", { month: "short", day: "numeric" })
                       : "";
+                    const hasBet = myBets.some(b => b.marketId === market.id);
 
                     return (
                       <Card key={market.id} className="border-border bg-card" data-testid={`polymarket-card-${market.id}`}>
                         <CardContent className="p-3">
-                          <div className="text-xs font-bold mb-2 leading-snug" data-testid={`text-poly-question-${market.id}`}>
-                            {market.question}
-                          </div>
-                          <div className="flex items-center gap-2 mb-2">
-                            <div className="flex-1">
-                              <div className="flex items-center justify-between mb-1 flex-wrap gap-1">
-                                <span className="text-[10px] text-emerald-400 font-bold">Yes {yesPercent}%</span>
-                                <span className="text-[10px] text-red-400 font-bold">No {noPercent}%</span>
-                              </div>
-                              <div className="flex h-2 overflow-hidden rounded-full">
-                                <div
-                                  className="bg-emerald-500 transition-all duration-500"
-                                  style={{ width: `${yesPercent}%` }}
-                                />
-                                <div
-                                  className="bg-red-500 transition-all duration-500"
-                                  style={{ width: `${noPercent}%` }}
-                                />
-                              </div>
-                            </div>
-                          </div>
-                          <div className="flex items-center justify-between gap-2 text-[9px] text-muted-foreground flex-wrap">
-                            <div className="flex items-center gap-2 flex-wrap">
-                              <span className="flex items-center gap-0.5">
-                                <BarChart3 className="h-2.5 w-2.5" /> Vol: {vol}
-                              </span>
-                              {endStr && <span>Ends: {endStr}</span>}
+                          <div className="flex items-start justify-between gap-2 mb-2">
+                            <div className="text-xs font-bold leading-snug flex-1" data-testid={`text-poly-question-${market.id}`}>
+                              {market.question}
                             </div>
                             <a
                               href={`https://polymarket.com/event/${market.slug}`}
                               target="_blank"
                               rel="noopener noreferrer"
-                              className="flex items-center gap-0.5 text-primary"
+                              className="shrink-0 text-muted-foreground"
                               data-testid={`link-poly-${market.id}`}
                             >
-                              <ExternalLink className="h-2.5 w-2.5" />
+                              <ExternalLink className="h-3 w-3" />
                             </a>
+                          </div>
+
+                          <div className="flex h-1.5 overflow-hidden rounded-full mb-2">
+                            <div className="bg-emerald-500 transition-all duration-500" style={{ width: `${yesPercent}%` }} />
+                            <div className="bg-red-500 transition-all duration-500" style={{ width: `${noPercent}%` }} />
+                          </div>
+
+                          <div className="flex gap-2 mb-2">
+                            <button
+                              className="flex-1 rounded-md border border-emerald-500/30 bg-emerald-500/10 py-2 px-2 text-center transition-all active:scale-[0.98] hover:bg-emerald-500/20"
+                              onClick={() => openBetDialog(market.id, market.question, "polymarket", [
+                                { label: "Yes", odds: market.yesPrice, color: "emerald" },
+                                { label: "No", odds: market.noPrice, color: "red" },
+                              ])}
+                              data-testid={`button-bet-yes-${market.id}`}
+                            >
+                              <div className="text-[10px] text-emerald-400 font-medium">Yes</div>
+                              <div className="text-sm font-bold text-emerald-400">{yesPercent}%</div>
+                              <div className="text-[9px] text-muted-foreground">{yesOdds}x</div>
+                            </button>
+                            <button
+                              className="flex-1 rounded-md border border-red-500/30 bg-red-500/10 py-2 px-2 text-center transition-all active:scale-[0.98] hover:bg-red-500/20"
+                              onClick={() => openBetDialog(market.id, market.question, "polymarket", [
+                                { label: "Yes", odds: market.yesPrice, color: "emerald" },
+                                { label: "No", odds: market.noPrice, color: "red" },
+                              ])}
+                              data-testid={`button-bet-no-${market.id}`}
+                            >
+                              <div className="text-[10px] text-red-400 font-medium">No</div>
+                              <div className="text-sm font-bold text-red-400">{noPercent}%</div>
+                              <div className="text-[9px] text-muted-foreground">{noOdds}x</div>
+                            </button>
+                          </div>
+
+                          <div className="flex items-center justify-between gap-2 text-[9px] text-muted-foreground flex-wrap">
+                            <div className="flex items-center gap-2 flex-wrap">
+                              <span className="flex items-center gap-0.5">
+                                <BarChart3 className="h-2.5 w-2.5" /> {vol}
+                              </span>
+                              {endStr && <span>Ends {endStr}</span>}
+                            </div>
+                            {hasBet && (
+                              <Badge className="text-[8px] bg-emerald-500/15 text-emerald-400 no-default-hover-elevate no-default-active-elevate">
+                                <Trophy className="h-2 w-2 mr-0.5" /> Bet Placed
+                              </Badge>
+                            )}
                           </div>
                         </CardContent>
                       </Card>
@@ -665,7 +730,7 @@ export default function StrategyPage() {
               <div className="space-y-2">
                 {newsLoading ? (
                   Array.from({ length: 4 }).map((_, i) => (
-                    <Skeleton key={i} className="h-24 w-full rounded-md" />
+                    <Skeleton key={i} className="h-32 w-full rounded-md" />
                   ))
                 ) : newsPredictions.length > 0 ? (
                   newsPredictions.map((news) => {
@@ -676,16 +741,8 @@ export default function StrategyPage() {
                       : news.impact === "MEDIUM"
                         ? "bg-yellow-500/15 text-yellow-400"
                         : "bg-muted/50 text-muted-foreground";
-                    const predColor = isBullish
-                      ? "text-emerald-400"
-                      : isBearish
-                        ? "text-red-400"
-                        : "text-yellow-400";
-                    const predBg = isBullish
-                      ? "bg-emerald-500/15"
-                      : isBearish
-                        ? "bg-red-500/15"
-                        : "bg-yellow-500/15";
+                    const bullOdds = isBullish ? Math.max(1.2, (100 / news.confidence)).toFixed(2) : (100 / (100 - news.confidence)).toFixed(2);
+                    const bearOdds = isBearish ? Math.max(1.2, (100 / news.confidence)).toFixed(2) : (100 / (100 - news.confidence)).toFixed(2);
                     const timeAgo = (() => {
                       const diff = Date.now() - new Date(news.publishedAt).getTime();
                       const mins = Math.floor(diff / 60000);
@@ -694,48 +751,68 @@ export default function StrategyPage() {
                       if (hrs < 24) return `${hrs}h ago`;
                       return `${Math.floor(hrs / 24)}d ago`;
                     })();
+                    const hasBet = myBets.some(b => b.marketId === news.id);
 
                     return (
                       <Card key={news.id} className="border-border bg-card" data-testid={`news-card-${news.id}`}>
                         <CardContent className="p-3">
-                          <div className="flex items-start gap-2">
-                            <div className={`mt-0.5 h-7 w-7 shrink-0 rounded-full flex items-center justify-center ${predBg}`}>
-                              {isBullish ? (
-                                <TrendingUp className="h-3.5 w-3.5 text-emerald-400" />
-                              ) : isBearish ? (
-                                <TrendingDown className="h-3.5 w-3.5 text-red-400" />
-                              ) : (
-                                <Minus className="h-3.5 w-3.5 text-yellow-400" />
-                              )}
-                            </div>
-                            <div className="flex-1 min-w-0">
-                              <div className="text-[11px] font-bold leading-snug mb-1 line-clamp-2">{news.headline}</div>
-                              <div className="flex items-center gap-1.5 flex-wrap mb-1.5">
-                                <Badge className={`text-[8px] ${predBg} ${predColor} no-default-hover-elevate no-default-active-elevate`}>
-                                  {news.prediction} {news.confidence}%
-                                </Badge>
-                                <Badge className={`text-[8px] ${impactColor} no-default-hover-elevate no-default-active-elevate`}>
-                                  {news.impact}
-                                </Badge>
-                                <Badge variant="outline" className="text-[8px] no-default-hover-elevate no-default-active-elevate">
-                                  {news.asset}
-                                </Badge>
-                              </div>
-                              <div className="text-[10px] text-foreground/60 leading-snug mb-1">{news.reasoning}</div>
-                              <div className="flex items-center justify-between gap-2 text-[9px] text-muted-foreground flex-wrap">
-                                <span>{news.source} &middot; {timeAgo}</span>
-                                <a
-                                  href={news.url}
-                                  target="_blank"
-                                  rel="noopener noreferrer"
-                                  className="flex items-center gap-0.5 text-primary"
-                                  data-testid={`link-news-${news.id}`}
-                                >
-                                  <ExternalLink className="h-2.5 w-2.5" />
-                                </a>
-                              </div>
-                            </div>
+                          <div className="flex items-start justify-between gap-2 mb-1">
+                            <div className="text-[11px] font-bold leading-snug flex-1 line-clamp-2">{news.headline}</div>
+                            <a href={news.url} target="_blank" rel="noopener noreferrer" className="shrink-0 text-muted-foreground">
+                              <ExternalLink className="h-3 w-3" />
+                            </a>
                           </div>
+
+                          <div className="flex items-center gap-1.5 flex-wrap mb-2">
+                            <Badge className={`text-[8px] ${impactColor} no-default-hover-elevate no-default-active-elevate`}>
+                              {news.impact}
+                            </Badge>
+                            <Badge variant="outline" className="text-[8px] no-default-hover-elevate no-default-active-elevate">
+                              {news.asset}
+                            </Badge>
+                            <span className="text-[9px] text-muted-foreground">{news.source} &middot; {timeAgo}</span>
+                          </div>
+
+                          <div className="text-[10px] text-foreground/60 leading-snug mb-2">{news.reasoning}</div>
+
+                          <div className="flex gap-2 mb-1.5">
+                            <button
+                              className="flex-1 rounded-md border border-emerald-500/30 bg-emerald-500/10 py-1.5 px-2 text-center transition-all active:scale-[0.98] hover:bg-emerald-500/20"
+                              onClick={() => openBetDialog(news.id, `${news.asset}: ${news.headline}`, "news", [
+                                { label: "Bullish", odds: Number(bullOdds) > 0 ? 1 / Number(bullOdds) : 0.5, color: "emerald" },
+                                { label: "Bearish", odds: Number(bearOdds) > 0 ? 1 / Number(bearOdds) : 0.5, color: "red" },
+                              ])}
+                              data-testid={`button-bet-bull-${news.id}`}
+                            >
+                              <div className="flex items-center justify-center gap-1">
+                                <TrendingUp className="h-3 w-3 text-emerald-400" />
+                                <span className="text-[10px] font-bold text-emerald-400">Bullish</span>
+                              </div>
+                              <div className="text-[9px] text-muted-foreground">{bullOdds}x</div>
+                            </button>
+                            <button
+                              className="flex-1 rounded-md border border-red-500/30 bg-red-500/10 py-1.5 px-2 text-center transition-all active:scale-[0.98] hover:bg-red-500/20"
+                              onClick={() => openBetDialog(news.id, `${news.asset}: ${news.headline}`, "news", [
+                                { label: "Bullish", odds: Number(bullOdds) > 0 ? 1 / Number(bullOdds) : 0.5, color: "emerald" },
+                                { label: "Bearish", odds: Number(bearOdds) > 0 ? 1 / Number(bearOdds) : 0.5, color: "red" },
+                              ])}
+                              data-testid={`button-bet-bear-${news.id}`}
+                            >
+                              <div className="flex items-center justify-center gap-1">
+                                <TrendingDown className="h-3 w-3 text-red-400" />
+                                <span className="text-[10px] font-bold text-red-400">Bearish</span>
+                              </div>
+                              <div className="text-[9px] text-muted-foreground">{bearOdds}x</div>
+                            </button>
+                          </div>
+
+                          {hasBet && (
+                            <div className="flex justify-end">
+                              <Badge className="text-[8px] bg-emerald-500/15 text-emerald-400 no-default-hover-elevate no-default-active-elevate">
+                                <Trophy className="h-2 w-2 mr-0.5" /> Bet Placed
+                              </Badge>
+                            </div>
+                          )}
                         </CardContent>
                       </Card>
                     );
@@ -755,7 +832,7 @@ export default function StrategyPage() {
               <div className="space-y-2">
                 {predsLoading ? (
                   Array.from({ length: 3 }).map((_, i) => (
-                    <Skeleton key={i} className="h-24 w-full rounded-md" />
+                    <Skeleton key={i} className="h-32 w-full rounded-md" />
                   ))
                 ) : aiPredictions.length > 0 ? (
                   aiPredictions.map((pred) => {
@@ -765,11 +842,16 @@ export default function StrategyPage() {
                     const current = Number(pred.currentPrice || 0);
                     const target = Number(pred.targetPrice || 0);
                     const pctChange = current > 0 ? ((target - current) / current * 100) : 0;
+                    const bullConf = isBullish ? confidence : (100 - confidence);
+                    const bearConf = isBearish ? confidence : (100 - confidence);
+                    const bullOdds = bullConf > 0 ? Math.max(1.1, (100 / bullConf)).toFixed(2) : "2.00";
+                    const bearOdds = bearConf > 0 ? Math.max(1.1, (100 / bearConf)).toFixed(2) : "2.00";
+                    const hasBet = myBets.some(b => b.marketId === `ai-${pred.asset}`);
 
                     return (
                       <Card key={pred.id} className="border-border bg-card" data-testid={`prediction-card-${pred.asset}`}>
                         <CardContent className="p-3">
-                          <div className="flex items-center justify-between gap-2 flex-wrap">
+                          <div className="flex items-center justify-between gap-2 flex-wrap mb-2">
                             <div className="flex items-center gap-2 flex-wrap">
                               <div
                                 className={`h-8 w-8 rounded-full flex items-center justify-center ${
@@ -794,7 +876,7 @@ export default function StrategyPage() {
                               <div>
                                 <div className="text-xs font-bold">{pred.asset}/USDT</div>
                                 <div className="text-[10px] text-muted-foreground flex items-center gap-1">
-                                  <Clock className="h-2.5 w-2.5" /> {pred.timeframe}
+                                  <Clock className="h-2.5 w-2.5" /> {pred.timeframe} &middot; F&G: {pred.fearGreedIndex}
                                 </div>
                               </div>
                             </div>
@@ -811,7 +893,7 @@ export default function StrategyPage() {
                             </Badge>
                           </div>
 
-                          <div className="grid grid-cols-3 gap-2 mt-2">
+                          <div className="grid grid-cols-3 gap-2 mb-2">
                             <div>
                               <div className="text-[9px] text-muted-foreground">Current</div>
                               <div className="text-[11px] font-bold tabular-nums">{current > 0 ? formatUSD(current) : "--"}</div>
@@ -831,7 +913,7 @@ export default function StrategyPage() {
                           </div>
 
                           {pred.reasoning && (
-                            <div className="mt-2 bg-background/30 rounded-md p-2 border border-border/20">
+                            <div className="mb-2 bg-background/30 rounded-md p-2 border border-border/20">
                               <div className="flex items-center gap-1 mb-0.5">
                                 <Sparkles className="h-2.5 w-2.5 text-primary" />
                                 <span className="text-[9px] text-muted-foreground">AI Analysis</span>
@@ -840,12 +922,44 @@ export default function StrategyPage() {
                             </div>
                           )}
 
-                          <div className="flex items-center justify-between gap-2 mt-2 text-[9px] text-muted-foreground flex-wrap">
-                            <span>Fear & Greed: {pred.fearGreedIndex} ({pred.fearGreedLabel})</span>
-                            {pred.createdAt && (
-                              <span>{new Date(pred.createdAt).toLocaleTimeString()}</span>
-                            )}
+                          <div className="flex gap-2">
+                            <button
+                              className="flex-1 rounded-md border border-emerald-500/30 bg-emerald-500/10 py-1.5 px-2 text-center transition-all active:scale-[0.98] hover:bg-emerald-500/20"
+                              onClick={() => openBetDialog(`ai-${pred.asset}`, `${pred.asset} will go UP within ${pred.timeframe}`, "ai", [
+                                { label: "Bullish", odds: bullConf / 100, color: "emerald" },
+                                { label: "Bearish", odds: bearConf / 100, color: "red" },
+                              ])}
+                              data-testid={`button-bet-bull-ai-${pred.asset}`}
+                            >
+                              <div className="flex items-center justify-center gap-1">
+                                <TrendingUp className="h-3 w-3 text-emerald-400" />
+                                <span className="text-[10px] font-bold text-emerald-400">Bull</span>
+                              </div>
+                              <div className="text-[9px] text-muted-foreground">{bullOdds}x</div>
+                            </button>
+                            <button
+                              className="flex-1 rounded-md border border-red-500/30 bg-red-500/10 py-1.5 px-2 text-center transition-all active:scale-[0.98] hover:bg-red-500/20"
+                              onClick={() => openBetDialog(`ai-${pred.asset}`, `${pred.asset} will go DOWN within ${pred.timeframe}`, "ai", [
+                                { label: "Bullish", odds: bullConf / 100, color: "emerald" },
+                                { label: "Bearish", odds: bearConf / 100, color: "red" },
+                              ])}
+                              data-testid={`button-bet-bear-ai-${pred.asset}`}
+                            >
+                              <div className="flex items-center justify-center gap-1">
+                                <TrendingDown className="h-3 w-3 text-red-400" />
+                                <span className="text-[10px] font-bold text-red-400">Bear</span>
+                              </div>
+                              <div className="text-[9px] text-muted-foreground">{bearOdds}x</div>
+                            </button>
                           </div>
+
+                          {hasBet && (
+                            <div className="flex justify-end mt-1.5">
+                              <Badge className="text-[8px] bg-emerald-500/15 text-emerald-400 no-default-hover-elevate no-default-active-elevate">
+                                <Trophy className="h-2 w-2 mr-0.5" /> Bet Placed
+                              </Badge>
+                            </div>
+                          )}
                         </CardContent>
                       </Card>
                     );
@@ -1343,6 +1457,142 @@ export default function StrategyPage() {
             >
               <Link2 className="mr-1 h-4 w-4" />
               Bind API
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={betDialogOpen} onOpenChange={setBetDialogOpen}>
+        <DialogContent className="bg-card border-border max-w-sm">
+          <DialogHeader>
+            <div className="flex items-center gap-2">
+              <div className="h-8 w-8 rounded-full bg-gradient-to-br from-emerald-500 to-teal-600 flex items-center justify-center" style={{ boxShadow: "0 0 12px rgba(16,185,129,0.3)" }}>
+                <DollarSign className="h-4 w-4 text-white" />
+              </div>
+              <div>
+                <DialogTitle className="text-base font-bold" data-testid="text-bet-dialog-title">Place Prediction Bet</DialogTitle>
+                <DialogDescription className="text-[11px] text-muted-foreground">Choose your prediction and stake amount</DialogDescription>
+              </div>
+            </div>
+          </DialogHeader>
+
+          {betMarket && (
+            <div className="space-y-4">
+              <div className="bg-background/50 rounded-md p-3 border border-border/30">
+                <p className="text-xs font-medium leading-snug" data-testid="text-bet-question">{betMarket.question}</p>
+                <Badge variant="outline" className="text-[8px] mt-1 no-default-hover-elevate no-default-active-elevate">{betMarket.type}</Badge>
+              </div>
+
+              <div>
+                <label className="text-xs text-muted-foreground mb-2 block">Your Prediction</label>
+                <div className="grid grid-cols-2 gap-2">
+                  {betMarket.choices.map((c) => {
+                    const isSelected = betChoice === c.label;
+                    const isGreen = c.color === "emerald";
+                    const oddsDisplay = c.odds > 0 ? (1 / c.odds).toFixed(2) : "0";
+                    const pctDisplay = (c.odds * 100).toFixed(1);
+
+                    return (
+                      <button
+                        key={c.label}
+                        className={`rounded-md border py-3 px-3 text-center transition-all ${
+                          isSelected
+                            ? isGreen
+                              ? "border-emerald-500 bg-emerald-500/20 ring-1 ring-emerald-500/50"
+                              : "border-red-500 bg-red-500/20 ring-1 ring-red-500/50"
+                            : isGreen
+                              ? "border-emerald-500/20 bg-emerald-500/5 hover:bg-emerald-500/10"
+                              : "border-red-500/20 bg-red-500/5 hover:bg-red-500/10"
+                        }`}
+                        onClick={() => setBetChoice(c.label)}
+                        data-testid={`button-select-${c.label.toLowerCase()}`}
+                      >
+                        <div className={`text-sm font-bold ${isGreen ? "text-emerald-400" : "text-red-400"}`}>
+                          {c.label}
+                        </div>
+                        <div className="text-[10px] text-muted-foreground">{pctDisplay}% &middot; {oddsDisplay}x</div>
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+
+              <div>
+                <label className="text-xs text-muted-foreground mb-1.5 block">Stake Amount (USDT)</label>
+                <Input
+                  type="number"
+                  placeholder="Enter amount"
+                  value={betAmount}
+                  onChange={(e) => setBetAmount(e.target.value)}
+                  className="text-sm"
+                  data-testid="input-bet-amount"
+                />
+                <div className="flex gap-1 mt-1.5">
+                  {[10, 50, 100, 500].map((amt) => (
+                    <Button
+                      key={amt}
+                      variant="outline"
+                      size="sm"
+                      className="flex-1 text-[10px]"
+                      onClick={() => setBetAmount(String(amt))}
+                      data-testid={`button-bet-preset-${amt}`}
+                    >
+                      {amt}
+                    </Button>
+                  ))}
+                </div>
+              </div>
+
+              {betAmount && Number(betAmount) > 0 && betChoice && (
+                <div className="bg-background/50 rounded-md p-3 border border-border/30 space-y-1">
+                  <div className="flex items-center justify-between gap-2 text-xs flex-wrap">
+                    <span className="text-muted-foreground">Your Choice</span>
+                    <span className="font-bold">{betChoice}</span>
+                  </div>
+                  <div className="flex items-center justify-between gap-2 text-xs flex-wrap">
+                    <span className="text-muted-foreground">Stake</span>
+                    <span className="font-bold">{Number(betAmount).toFixed(2)} USDT</span>
+                  </div>
+                  <div className="flex items-center justify-between gap-2 text-xs flex-wrap">
+                    <span className="text-muted-foreground">Potential Payout</span>
+                    <span className="font-bold text-emerald-400">
+                      {(() => {
+                        const chosen = betMarket.choices.find(c => c.label === betChoice);
+                        const payout = chosen && chosen.odds > 0 ? Number(betAmount) / chosen.odds : 0;
+                        return payout.toFixed(2);
+                      })()} USDT
+                    </span>
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+
+          <DialogFooter className="gap-2 sm:gap-0">
+            <Button variant="outline" onClick={() => setBetDialogOpen(false)} data-testid="button-cancel-bet">Cancel</Button>
+            <Button
+              className="bg-gradient-to-r from-emerald-600 to-teal-500 border-emerald-500/50 text-white"
+              disabled={!betAmount || Number(betAmount) <= 0 || !betChoice || placeBetMutation.isPending}
+              onClick={() => {
+                if (!betMarket || !betChoice || !betAmount) return;
+                const chosen = betMarket.choices.find(c => c.label === betChoice);
+                placeBetMutation.mutate({
+                  marketId: betMarket.id,
+                  marketType: betMarket.type,
+                  question: betMarket.question,
+                  choice: betChoice,
+                  odds: chosen?.odds || 0.5,
+                  amount: Number(betAmount),
+                });
+              }}
+              data-testid="button-confirm-bet"
+            >
+              {placeBetMutation.isPending ? (
+                <RefreshCw className="mr-1 h-4 w-4 animate-spin" />
+              ) : (
+                <DollarSign className="mr-1 h-4 w-4" />
+              )}
+              Place Bet
             </Button>
           </DialogFooter>
         </DialogContent>

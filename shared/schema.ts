@@ -189,6 +189,26 @@ export const insurancePurchases = pgTable("insurance_purchases", {
   createdAt: timestamp("created_at").defaultNow(),
 });
 
+export const predictionBets = pgTable("prediction_bets", {
+  id: varchar("id")
+    .primaryKey()
+    .default(sql`gen_random_uuid()`),
+  userId: varchar("user_id")
+    .notNull()
+    .references(() => profiles.id),
+  marketId: text("market_id").notNull(),
+  marketType: text("market_type").notNull(),
+  question: text("question").notNull(),
+  choice: text("choice").notNull(),
+  odds: numeric("odds", { precision: 8, scale: 4 }).notNull(),
+  amount: numeric("amount", { precision: 18, scale: 6 }).notNull(),
+  potentialPayout: numeric("potential_payout", { precision: 18, scale: 6 }).notNull(),
+  status: text("status").notNull().default("ACTIVE"),
+  result: text("result"),
+  settledAt: timestamp("settled_at"),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
 export const systemConfig = pgTable("system_config", {
   key: text("key").primaryKey(),
   value: text("value").notNull(),
@@ -242,6 +262,12 @@ export const insertTradeBetSchema = createInsertSchema(tradeBets).omit({
   settledAt: true,
 });
 
+export const insertPredictionBetSchema = createInsertSchema(predictionBets).omit({
+  id: true,
+  createdAt: true,
+  settledAt: true,
+});
+
 export type InsertProfile = z.infer<typeof insertProfileSchema>;
 export type Profile = typeof profiles.$inferSelect;
 export type VaultPosition = typeof vaultPositions.$inferSelect;
@@ -263,5 +289,7 @@ export type InsertHedgePosition = z.infer<typeof insertHedgePositionSchema>;
 export type InsurancePurchase = typeof insurancePurchases.$inferSelect;
 export type InsertInsurancePurchase = z.infer<typeof insertInsurancePurchaseSchema>;
 export type SystemConfig = typeof systemConfig.$inferSelect;
+export type PredictionBet = typeof predictionBets.$inferSelect;
+export type InsertPredictionBet = z.infer<typeof insertPredictionBetSchema>;
 
 export { conversations, messages } from "./models/chat";

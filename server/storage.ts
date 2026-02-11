@@ -12,6 +12,7 @@ import {
   aiPredictions,
   hedgePositions,
   insurancePurchases,
+  predictionBets,
   systemConfig,
   type Profile,
   type InsertProfile,
@@ -33,6 +34,8 @@ import {
   type InsertHedgePosition,
   type InsurancePurchase,
   type InsertInsurancePurchase,
+  type PredictionBet,
+  type InsertPredictionBet,
 } from "@shared/schema";
 
 export interface IStorage {
@@ -79,6 +82,9 @@ export interface IStorage {
   getInsurancePurchases(userId: string): Promise<InsurancePurchase[]>;
   createInsurancePurchase(data: InsertInsurancePurchase): Promise<InsurancePurchase>;
   getInsurancePoolOverview(): Promise<{ poolSize: string; totalPolicies: number; totalPaid: string; payoutRate: string }>;
+
+  getPredictionBets(userId: string): Promise<PredictionBet[]>;
+  createPredictionBet(data: InsertPredictionBet): Promise<PredictionBet>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -285,6 +291,15 @@ export class DatabaseStorage implements IStorage {
       totalPaid: paidOut.toFixed(2),
       payoutRate: payoutRate.toFixed(2),
     };
+  }
+
+  async getPredictionBets(userId: string): Promise<PredictionBet[]> {
+    return db.select().from(predictionBets).where(eq(predictionBets.userId, userId)).orderBy(desc(predictionBets.createdAt));
+  }
+
+  async createPredictionBet(data: InsertPredictionBet): Promise<PredictionBet> {
+    const [created] = await db.insert(predictionBets).values(data).returning();
+    return created;
   }
 }
 

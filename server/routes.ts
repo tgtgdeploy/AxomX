@@ -1022,6 +1022,47 @@ export async function registerRoutes(
     }
   });
 
+  app.post("/api/prediction-bets", async (req, res) => {
+    try {
+      const { walletAddress, marketId, marketType, question, choice, odds, amount } = req.body;
+      if (!walletAddress || !marketId || !choice || !amount) {
+        return res.status(400).json({ message: "Missing required fields" });
+      }
+      const profile = await storage.getProfileByWallet(walletAddress);
+      if (!profile) return res.status(404).json({ message: "Profile not found" });
+
+      const oddsVal = Number(odds) || 1;
+      const amountVal = Number(amount);
+      const potentialPayout = (amountVal * (1 / oddsVal)).toFixed(6);
+
+      const bet = await storage.createPredictionBet({
+        userId: profile.id,
+        marketId,
+        marketType: marketType || "polymarket",
+        question: question || "",
+        choice,
+        odds: String(oddsVal),
+        amount: String(amountVal),
+        potentialPayout,
+        status: "ACTIVE",
+      });
+      res.json(bet);
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  app.get("/api/prediction-bets/:walletAddress", async (req, res) => {
+    try {
+      const profile = await storage.getProfileByWallet(req.params.walletAddress);
+      if (!profile) return res.json([]);
+      const bets = await storage.getPredictionBets(profile.id);
+      res.json(bets);
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
   app.get("/api/referrals/:walletAddress", async (req, res) => {
     try {
       const profile = await storage.getProfileByWallet(req.params.walletAddress);
