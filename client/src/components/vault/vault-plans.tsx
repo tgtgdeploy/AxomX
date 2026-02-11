@@ -1,6 +1,10 @@
 import { Card, CardContent } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { VAULT_PLANS } from "@/lib/data";
 import { formatDailyRate } from "@/lib/formulas";
+import { Sparkles, CheckCircle2 } from "lucide-react";
+import { useState } from "react";
 
 interface VaultPlansProps {
   selectedPlan?: string;
@@ -8,34 +12,84 @@ interface VaultPlansProps {
 }
 
 export function VaultPlans({ selectedPlan, onSelectPlan }: VaultPlansProps) {
+  const [dialogOpen, setDialogOpen] = useState(false);
+
+  const handleSelect = (key: string) => {
+    onSelectPlan?.(key);
+    setDialogOpen(false);
+  };
+
   return (
     <div>
-      <h3 className="text-sm font-bold mb-3">Vault Plans</h3>
-      <div className="grid grid-cols-3 gap-3">
-        {Object.entries(VAULT_PLANS).map(([key, plan]) => {
-          const isSelected = selectedPlan === key;
-          return (
-            <Card
-              key={key}
-              className={`border-border bg-card cursor-pointer transition-all duration-200 hover-elevate ${
-                isSelected
-                  ? "ring-2 ring-green-500 border-green-500/50 shadow-[0_0_12px_rgba(34,197,94,0.15)]"
-                  : ""
-              }`}
-              onClick={() => onSelectPlan?.(key)}
-              data-testid={`vault-plan-${key}`}
+      <Card className="border-border bg-card" data-testid="card-vault-plans-cta">
+        <CardContent className="p-4">
+          <div className="flex items-center justify-between gap-3 flex-wrap">
+            <div className="flex items-center gap-3 flex-wrap">
+              <div className="h-10 w-10 rounded-full bg-primary/20 flex items-center justify-center shrink-0">
+                <Sparkles className="h-5 w-5 text-primary" />
+              </div>
+              <div>
+                <div className="text-sm font-bold">Vault Plans</div>
+                <div className="text-[10px] text-muted-foreground">Earn yield with locked staking</div>
+              </div>
+            </div>
+            <Button
+              size="sm"
+              onClick={() => setDialogOpen(true)}
+              data-testid="button-open-plans-dialog"
             >
-              <CardContent className="p-3 text-center">
-                <div className={`text-sm font-bold mb-1 ${isSelected ? "text-green-400" : "text-primary"}`}>
-                  {plan.label}
-                </div>
-                <div className="text-xs text-muted-foreground mb-1">Daily: {formatDailyRate(plan.dailyRate)}</div>
-                <div className="text-xs font-medium text-green-400">{plan.apr} APR</div>
-              </CardContent>
-            </Card>
-          );
-        })}
-      </div>
+              View Plans
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
+
+      <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
+        <DialogContent className="bg-card border-border max-w-sm">
+          <DialogHeader>
+            <DialogTitle className="text-lg font-bold">Choose a Vault Plan</DialogTitle>
+            <DialogDescription className="text-xs text-muted-foreground">
+              Select a plan to start earning yield on your assets
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-3 py-2">
+            {Object.entries(VAULT_PLANS).map(([key, plan]) => {
+              const isSelected = selectedPlan === key;
+              return (
+                <Card
+                  key={key}
+                  className={`border-border bg-background cursor-pointer transition-all duration-200 hover-elevate ${
+                    isSelected
+                      ? "ring-2 ring-green-500 border-green-500/50 shadow-[0_0_12px_rgba(34,197,94,0.15)]"
+                      : ""
+                  }`}
+                  onClick={() => handleSelect(key)}
+                  data-testid={`vault-plan-${key}`}
+                >
+                  <CardContent className="p-4">
+                    <div className="flex items-center justify-between gap-3 mb-2 flex-wrap">
+                      <span className={`text-sm font-bold ${isSelected ? "text-green-400" : ""}`}>
+                        {plan.label}
+                      </span>
+                      <span className="text-lg font-bold text-green-400">{plan.apr} APR</span>
+                    </div>
+                    <div className="space-y-1">
+                      <div className="flex items-center gap-1.5 text-[11px] text-muted-foreground">
+                        <CheckCircle2 className="h-3 w-3 text-primary shrink-0" />
+                        <span>Daily rate: {formatDailyRate(plan.dailyRate)}</span>
+                      </div>
+                      <div className="flex items-center gap-1.5 text-[11px] text-muted-foreground">
+                        <CheckCircle2 className="h-3 w-3 text-primary shrink-0" />
+                        <span>Lock period: {plan.days} days</span>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              );
+            })}
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

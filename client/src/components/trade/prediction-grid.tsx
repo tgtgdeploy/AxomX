@@ -5,7 +5,6 @@ interface GridCell {
   direction: "up" | "down";
   confirmed: boolean;
   isLatest: boolean;
-  number: number;
 }
 
 interface PredictionGridProps {
@@ -29,7 +28,6 @@ function generateCells(bets: TradeBet[], gridType: "big" | "small", timeframe?: 
         direction: bet.direction === "up" || bet.direction === "bull" ? "up" : "down",
         confirmed: bet.result !== null && bet.result !== undefined,
         isLatest: false,
-        number: idx + 1,
       });
     }
   }
@@ -42,7 +40,6 @@ function generateCells(bets: TradeBet[], gridType: "big" | "small", timeframe?: 
       direction: isUp ? "up" : "down",
       confirmed: i < remaining - 2,
       isLatest: false,
-      number: cells.length + 1,
     });
   }
 
@@ -51,6 +48,168 @@ function generateCells(bets: TradeBet[], gridType: "big" | "small", timeframe?: 
     result[result.length - 1] = { ...result[result.length - 1], isLatest: true };
   }
   return result;
+}
+
+function BigRoadGrid({ cells, cols, rows, visibleCount }: { cells: GridCell[]; cols: number; rows: number; visibleCount: number }) {
+  return (
+    <div className="rounded-md border border-border bg-card/50 p-1 overflow-hidden">
+      <div className="flex">
+        <div className="flex flex-col shrink-0">
+          {Array.from({ length: rows }, (_, r) => (
+            <div
+              key={r}
+              className="flex items-center justify-center text-[9px] text-muted-foreground font-mono"
+              style={{ height: 32, width: 16 }}
+              data-testid={`row-label-${r + 1}`}
+            >
+              {r + 1}
+            </div>
+          ))}
+        </div>
+
+        <div
+          className="grid flex-1"
+          style={{
+            gridTemplateColumns: `repeat(${cols}, 1fr)`,
+            gridTemplateRows: `repeat(${rows}, 32px)`,
+            gap: "2px",
+          }}
+        >
+          {cells.map((cell, i) => {
+            const isVisible = i < visibleCount;
+            const isUp = cell.direction === "up";
+
+            let bgClass: string;
+            let borderClass: string;
+            if (isUp) {
+              bgClass = cell.confirmed ? "bg-green-600/80" : "bg-green-500/20";
+              borderClass = "border-green-500/40";
+            } else {
+              bgClass = cell.confirmed ? "bg-red-500/70" : "bg-red-500/20";
+              borderClass = "border-red-500/40";
+            }
+
+            return (
+              <div
+                key={i}
+                className={`
+                  flex items-center justify-center rounded-[3px] border text-xs font-bold
+                  transition-all duration-200
+                  ${isVisible ? "opacity-100 scale-100" : "opacity-0 scale-75"}
+                  ${bgClass} ${borderClass}
+                  ${cell.isLatest ? "ring-1 ring-yellow-400/60" : ""}
+                `}
+                style={cell.isLatest && isVisible ? {
+                  animation: "gridBlink 1s ease-in-out infinite",
+                  boxShadow: isUp
+                    ? "0 0 10px rgba(34,197,94,0.5)"
+                    : "0 0 10px rgba(239,68,68,0.5)",
+                } : undefined}
+                data-testid={`grid-cell-${i}`}
+              >
+                <span className={isUp ? "text-green-200" : "text-red-200"}>
+                  {isUp ? "\u2191" : "\u2193"}
+                </span>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+
+      <div className="flex mt-1 ml-4">
+        {Array.from({ length: cols }, (_, c) => (
+          <div
+            key={c}
+            className="flex-1 text-center text-[9px] text-muted-foreground font-mono"
+            data-testid={`col-label-${c + 1}`}
+          >
+            {c + 1}
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function SmallRoadGrid({ cells, cols, rows, visibleCount }: { cells: GridCell[]; cols: number; rows: number; visibleCount: number }) {
+  return (
+    <div className="rounded-md border border-border bg-card/50 p-1.5 overflow-hidden">
+      <div className="flex">
+        <div className="flex flex-col shrink-0">
+          {Array.from({ length: rows }, (_, r) => (
+            <div
+              key={r}
+              className="flex items-center justify-center text-[9px] text-muted-foreground font-mono"
+              style={{ height: 24, width: 16 }}
+              data-testid={`row-label-${r + 1}`}
+            >
+              {r + 1}
+            </div>
+          ))}
+        </div>
+
+        <div
+          className="grid flex-1"
+          style={{
+            gridTemplateColumns: `repeat(${cols}, 1fr)`,
+            gridTemplateRows: `repeat(${rows}, 24px)`,
+            gap: "3px",
+          }}
+        >
+          {cells.map((cell, i) => {
+            const isVisible = i < visibleCount;
+            const isUp = cell.direction === "up";
+
+            const fillColor = isUp
+              ? (cell.confirmed ? "bg-green-500" : "bg-green-500/40")
+              : (cell.confirmed ? "bg-red-500" : "bg-red-500/40");
+
+            const borderColor = isUp ? "border-green-400/50" : "border-red-400/50";
+
+            return (
+              <div
+                key={i}
+                className="flex items-center justify-center"
+                data-testid={`grid-cell-${i}`}
+              >
+                <div
+                  className={`
+                    rounded-full border
+                    transition-all duration-200
+                    ${isVisible ? "opacity-100 scale-100" : "opacity-0 scale-50"}
+                    ${fillColor} ${borderColor}
+                    ${cell.isLatest ? "ring-1 ring-yellow-400/60" : ""}
+                  `}
+                  style={{
+                    width: 16,
+                    height: 16,
+                    ...(cell.isLatest && isVisible ? {
+                      animation: "gridBlink 1s ease-in-out infinite",
+                      boxShadow: isUp
+                        ? "0 0 8px rgba(34,197,94,0.6)"
+                        : "0 0 8px rgba(239,68,68,0.6)",
+                    } : {}),
+                  }}
+                />
+              </div>
+            );
+          })}
+        </div>
+      </div>
+
+      <div className="flex mt-1 ml-4">
+        {Array.from({ length: cols }, (_, c) => (
+          <div
+            key={c}
+            className="flex-1 text-center text-[9px] text-muted-foreground font-mono"
+            data-testid={`col-label-${c + 1}`}
+          >
+            {c + 1}
+          </div>
+        ))}
+      </div>
+    </div>
+  );
 }
 
 export function PredictionGrid({ bets, gridType, timeframe }: PredictionGridProps) {
@@ -101,87 +260,16 @@ export function PredictionGrid({ bets, gridType, timeframe }: PredictionGridProp
         </span>
       </div>
 
-      <div className="rounded-md border border-border bg-card/50 p-1 overflow-hidden">
-        <div className="flex">
-          <div className="flex flex-col shrink-0" style={{ marginTop: 0 }}>
-            {Array.from({ length: rows }, (_, r) => (
-              <div
-                key={r}
-                className="flex items-center justify-center text-[9px] text-muted-foreground font-mono"
-                style={{ height: gridType === "big" ? 32 : 24, width: 16 }}
-                data-testid={`row-label-${r + 1}`}
-              >
-                {r + 1}
-              </div>
-            ))}
-          </div>
-
-          <div
-            className="grid flex-1"
-            style={{
-              gridTemplateColumns: `repeat(${cols}, 1fr)`,
-              gridTemplateRows: `repeat(${rows}, ${gridType === "big" ? 32 : 24}px)`,
-              gap: "2px",
-            }}
-          >
-            {cells.map((cell, i) => {
-              const isVisible = i < visibleCount;
-              const isUp = cell.direction === "up";
-
-              let bgClass: string;
-              let borderClass: string;
-              if (isUp) {
-                bgClass = cell.confirmed ? "bg-green-600/80" : "bg-green-500/20";
-                borderClass = "border-green-500/40";
-              } else {
-                bgClass = cell.confirmed ? "bg-red-500/70" : "bg-red-500/20";
-                borderClass = "border-red-500/40";
-              }
-
-              return (
-                <div
-                  key={i}
-                  className={`
-                    flex items-center justify-center rounded-[3px] border text-[10px] font-bold
-                    transition-all duration-200
-                    ${isVisible ? "opacity-100 scale-100" : "opacity-0 scale-75"}
-                    ${bgClass} ${borderClass}
-                    ${cell.isLatest ? "ring-1 ring-yellow-400/60" : ""}
-                  `}
-                  style={cell.isLatest && isVisible ? {
-                    animation: "gridPulse 1.5s ease-in-out infinite",
-                    boxShadow: isUp
-                      ? "0 0 8px rgba(34,197,94,0.4)"
-                      : "0 0 8px rgba(239,68,68,0.4)",
-                  } : undefined}
-                  data-testid={`grid-cell-${i}`}
-                >
-                  <span className={isUp ? "text-green-200" : "text-red-200"}>
-                    {cell.number}
-                  </span>
-                </div>
-              );
-            })}
-          </div>
-        </div>
-
-        <div className="flex mt-1 ml-4">
-          {Array.from({ length: cols }, (_, c) => (
-            <div
-              key={c}
-              className="flex-1 text-center text-[9px] text-muted-foreground font-mono"
-              data-testid={`col-label-${c + 1}`}
-            >
-              {c + 1}
-            </div>
-          ))}
-        </div>
-      </div>
+      {gridType === "big" ? (
+        <BigRoadGrid cells={cells} cols={cols} rows={rows} visibleCount={visibleCount} />
+      ) : (
+        <SmallRoadGrid cells={cells} cols={cols} rows={rows} visibleCount={visibleCount} />
+      )}
 
       <style>{`
-        @keyframes gridPulse {
-          0%, 100% { transform: scale(1); opacity: 1; }
-          50% { transform: scale(1.08); opacity: 0.85; }
+        @keyframes gridBlink {
+          0%, 100% { opacity: 1; transform: scale(1); }
+          50% { opacity: 0.4; transform: scale(1.1); }
         }
       `}</style>
     </div>

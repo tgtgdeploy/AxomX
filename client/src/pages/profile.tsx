@@ -69,7 +69,7 @@ export default function ProfilePage() {
       <div className="px-4" style={{ animation: "fadeSlideIn 0.4s ease-out 0.1s both" }}>
         <Card className="border-border bg-card">
           <CardContent className="p-4">
-            <div className="flex items-center justify-between gap-2">
+            <div className="flex items-center justify-between gap-2 flex-wrap">
               <div className="min-w-0 flex-1">
                 <div className="text-xs text-muted-foreground mb-1">Connected Wallet</div>
                 {profileLoading ? (
@@ -115,9 +115,9 @@ export default function ProfilePage() {
         <div className="px-4" style={{ animation: "fadeSlideIn 0.4s ease-out 0.15s both" }}>
           <Card className="border-border bg-card glow-green-sm">
             <CardContent className="p-4">
-              <div className="flex items-center justify-between gap-2 flex-wrap">
-                <div className="flex items-center gap-2">
-                  <Crown className="h-4 w-4 text-primary" />
+              <div className="flex items-center justify-between gap-3 flex-wrap">
+                <div className="flex items-center gap-2 flex-wrap">
+                  <Crown className="h-4 w-4 text-primary shrink-0" />
                   <span className="text-xs font-semibold">Upgrade to VIP</span>
                 </div>
                 <Button
@@ -161,15 +161,15 @@ export default function ProfilePage() {
             {transactions.slice(0, 20).map((tx) => (
               <Card key={tx.id} className="border-border bg-card" data-testid={`transaction-card-${tx.id}`}>
                 <CardContent className="p-3">
-                  <div className="flex items-center justify-between gap-2">
-                    <div className="flex items-center gap-2 min-w-0 flex-1">
+                  <div className="flex items-center justify-between gap-2 flex-wrap">
+                    <div className="flex items-center gap-2 min-w-0 flex-1 flex-wrap">
                       <Badge
                         className={`text-[9px] shrink-0 no-default-hover-elevate no-default-active-elevate ${TX_TYPE_COLORS[tx.type] || "bg-muted text-muted-foreground"}`}
                         data-testid={`badge-tx-type-${tx.id}`}
                       >
                         {tx.type}
                       </Badge>
-                      <div className="min-w-0 flex-1">
+                      <div className="min-w-0">
                         <div className="text-xs font-bold" data-testid={`text-tx-amount-${tx.id}`}>
                           {formatCompact(Number(tx.amount))} {tx.token}
                         </div>
