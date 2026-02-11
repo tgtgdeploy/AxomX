@@ -84,24 +84,31 @@ function FearGreedGauge({ value, label }: { value: number; label: string }) {
   );
 }
 
-function FearGreedChart({ data }: { data: { date: string; fgi: number; btcPrice: number }[] }) {
+function FearGreedChart({ data, coinSymbol }: { data: { date: string; fgi: number; btcPrice: number }[]; coinSymbol: string }) {
   if (!data || data.length === 0) return null;
   const sampled = data.filter((_, i) => i % 3 === 0 || i === data.length - 1);
+  const hasPrice = sampled.some(d => d.btcPrice > 0);
+
+  const formatPrice = (v: number) => {
+    if (v >= 1000) return `$${(v/1000).toFixed(0)}K`;
+    if (v >= 1) return `$${v.toFixed(0)}`;
+    return `$${v.toFixed(4)}`;
+  };
 
   return (
     <div className="mt-4" data-testid="fear-greed-chart">
       <div className="flex items-center gap-3 mb-2 flex-wrap">
-        <div className="flex items-center gap-1"><div className="w-3 h-[2px] bg-white/80" /><span className="text-[10px] text-muted-foreground">BTC Price</span></div>
-        <div className="flex items-center gap-1"><div className="w-3 h-[2px] bg-amber-500" /><span className="text-[10px] text-muted-foreground">Fear & Greed Index</span></div>
+        {hasPrice && <div className="flex items-center gap-1"><div className="w-3 h-[2px] bg-white/80" /><span className="text-[10px] text-muted-foreground">{coinSymbol} Price</span></div>}
+        <div className="flex items-center gap-1"><div className="w-3 h-[2px] bg-amber-500" /><span className="text-[10px] text-muted-foreground">Sentiment Index</span></div>
       </div>
       <ResponsiveContainer width="100%" height={200}>
         <ComposedChart data={sampled} margin={{ top: 5, right: 5, left: -15, bottom: 5 }}>
           <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" />
           <XAxis dataKey="date" tick={{ fontSize: 8, fill: "hsl(150,5%,45%)" }} tickFormatter={(d) => { const dt = new Date(d); return `${dt.getMonth()+1}/${dt.getDate()}`; }} interval={Math.floor(sampled.length / 6)} />
-          <YAxis yAxisId="price" orientation="right" tick={{ fontSize: 8, fill: "rgba(255,255,255,0.5)" }} tickFormatter={(v) => `$${(v/1000).toFixed(0)}K`} domain={["dataMin","dataMax"]} />
+          {hasPrice && <YAxis yAxisId="price" orientation="right" tick={{ fontSize: 8, fill: "rgba(255,255,255,0.5)" }} tickFormatter={formatPrice} domain={["dataMin","dataMax"]} />}
           <YAxis yAxisId="fgi" orientation="left" tick={{ fontSize: 8, fill: "rgba(245,158,11,0.6)" }} domain={[0, 100]} />
-          <Tooltip contentStyle={{ backgroundColor: "hsl(160,20%,8%)", border: "1px solid rgba(255,255,255,0.1)", borderRadius: "6px", fontSize: "11px" }} formatter={(value: number, name: string) => name === "btcPrice" ? [`$${value.toLocaleString()}`, "BTC Price"] : [value, "Fear & Greed"]} />
-          <Line yAxisId="price" type="monotone" dataKey="btcPrice" stroke="rgba(255,255,255,0.8)" strokeWidth={1.5} dot={false} />
+          <Tooltip contentStyle={{ backgroundColor: "hsl(160,20%,8%)", border: "1px solid rgba(255,255,255,0.1)", borderRadius: "6px", fontSize: "11px" }} formatter={(value: number, name: string) => name === "btcPrice" ? [formatPrice(value), `${coinSymbol} Price`] : [value, "Sentiment"]} />
+          {hasPrice && <Line yAxisId="price" type="monotone" dataKey="btcPrice" stroke="rgba(255,255,255,0.8)" strokeWidth={1.5} dot={false} />}
           <Area yAxisId="fgi" type="monotone" dataKey="fgi" stroke="#f59e0b" fill="rgba(245,158,11,0.15)" strokeWidth={1.5} />
         </ComposedChart>
       </ResponsiveContainer>
@@ -181,7 +188,15 @@ export default function MarketPage() {
     },
     staleTime: 5 * 60 * 1000,
   });
-  const { data: fgHistory, isLoading: fgLoading } = useQuery<FearGreedHistory>({ queryKey: ["/api/market/fear-greed-history"], staleTime: 5 * 60 * 1000 });
+  const { data: fgHistory, isLoading: fgLoading } = useQuery<FearGreedHistory>({
+    queryKey: ["/api/market/fear-greed-history", selectedCoinTab],
+    queryFn: async () => {
+      const res = await fetch(`/api/market/fear-greed-history?coin=${selectedCoinTab}`);
+      if (!res.ok) throw new Error("Failed to fetch FGI");
+      return res.json();
+    },
+    staleTime: 5 * 60 * 1000,
+  });
   const { data: sentimentData, isLoading: sentLoading } = useQuery<SentimentData>({ queryKey: ["/api/market/sentiment"], staleTime: 60 * 1000 });
   const { data: futuresData, isLoading: oiLoading } = useQuery<FuturesOIData>({ queryKey: ["/api/market/futures-oi"], staleTime: 60 * 1000 });
   const { data: exchangePrices, isLoading: epLoading } = useQuery<CoinExchangeData[]>({ queryKey: ["/api/market/exchange-prices"], staleTime: 60 * 1000 });
@@ -225,8 +240,10 @@ export default function MarketPage() {
       {/* Fear & Greed Index */}
       <div className="px-4" style={{ animation: "fadeSlideIn 0.6s ease-out" }}>
         <div className="flex items-center justify-between gap-2 mb-3 flex-wrap">
-          <h2 className="text-sm font-bold">Fear & Greed Index</h2>
-          <Badge className="bg-muted/30 text-muted-foreground text-[9px] no-default-hover-elevate no-default-active-elevate">Market-Wide</Badge>
+          <h2 className="text-sm font-bold">{selectedCoinTab} Fear & Greed Index</h2>
+          <Badge className="bg-muted/30 text-muted-foreground text-[9px] no-default-hover-elevate no-default-active-elevate">
+            {selectedCoinTab === "BTC" ? "Market Index" : "Price-Based"}
+          </Badge>
         </div>
         {fgLoading ? <Skeleton className="h-48 w-full rounded-md" /> : fgHistory ? (
           <Card className="border-border bg-card"><CardContent className="p-4">
@@ -253,113 +270,154 @@ export default function MarketPage() {
               })}
             </div>
             <FearGreedGauge value={fgHistory.current.value} label={fgHistory.current.label} />
-            <FearGreedChart data={fgHistory.chartData} />
+            <FearGreedChart data={fgHistory.chartData} coinSymbol={selectedCoinTab} />
           </CardContent></Card>
         ) : null}
       </div>
 
-      {/* Market Sentiment - Top Net Inflows */}
+      {/* Market Sentiment - Selected Coin */}
       <div className="px-4" style={{ animation: "fadeSlideIn 0.7s ease-out" }}>
         <div className="flex items-center justify-between gap-2 mb-3 flex-wrap">
-          <h2 className="text-sm font-bold">Market Sentiment</h2>
+          <h2 className="text-sm font-bold">{selectedCoinTab} Sentiment</h2>
           <div className="flex items-center gap-1">
-            <span className="text-[10px] text-muted-foreground">Top Net Inflows</span>
+            <span className="text-[10px] text-muted-foreground">Net Inflow</span>
             <div className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse" />
             <span className="text-[10px] text-emerald-400">Real-time</span>
           </div>
         </div>
         {sentLoading ? (
           <div className="space-y-2">{[1,2,3].map(i => <Skeleton key={i} className="h-14 w-full rounded-md" />)}</div>
-        ) : sentimentData?.coins ? (
-          <>
-            <div className="space-y-2">
-              {sentimentData.coins.map((coin) => {
-                const isInflow = coin.netFlow >= 0;
+        ) : sentimentData?.coins ? (() => {
+          const selectedCoin = sentimentData.coins.find(c => c.symbol === selectedCoinTab);
+          const otherCoins = sentimentData.coins.filter(c => c.symbol !== selectedCoinTab);
+          return (
+            <>
+              {selectedCoin && (() => {
+                const isInflow = selectedCoin.netFlow >= 0;
                 return (
-                  <Card key={coin.id} className="border-border bg-card" data-testid={`sentiment-card-${coin.symbol}`}>
-                    <CardContent className="p-3">
+                  <Card className="border-primary/30 bg-card" data-testid={`sentiment-card-${selectedCoin.symbol}`}>
+                    <CardContent className="p-4">
                       <div className="flex items-center justify-between gap-2 flex-wrap">
-                        <div className="flex items-center gap-2 min-w-0 flex-wrap">
-                          <div className="relative h-8 w-8 rounded-full shrink-0 flex items-center justify-center" style={{ boxShadow: isInflow ? "0 0 10px rgba(16,185,129,0.3)" : "0 0 10px rgba(239,68,68,0.3)" }}>
-                            {coin.image ? <img src={coin.image} alt={coin.name} className="h-8 w-8 rounded-full" /> : <div className="h-8 w-8 rounded-full bg-card flex items-center justify-center text-xs font-bold">{coin.symbol}</div>}
+                        <div className="flex items-center gap-3 min-w-0 flex-wrap">
+                          <div className="relative h-10 w-10 rounded-full shrink-0 flex items-center justify-center" style={{ boxShadow: isInflow ? "0 0 12px rgba(16,185,129,0.4)" : "0 0 12px rgba(239,68,68,0.4)" }}>
+                            {selectedCoin.image ? <img src={selectedCoin.image} alt={selectedCoin.name} className="h-10 w-10 rounded-full" /> : <div className="h-10 w-10 rounded-full bg-card flex items-center justify-center text-sm font-bold">{selectedCoin.symbol}</div>}
                           </div>
                           <div>
-                            <div className="text-xs font-bold">{coin.symbol}</div>
-                            <div className="text-[10px] text-muted-foreground">24H INFLOW</div>
+                            <div className="text-sm font-bold">{selectedCoin.name}</div>
+                            <div className="text-xs text-muted-foreground">{selectedCoin.symbol} · 24H INFLOW</div>
                           </div>
                         </div>
                         <div className="text-right">
-                          <div className={`text-sm font-bold ${isInflow ? "text-emerald-400" : "text-red-400"}`} style={{ textShadow: isInflow ? "0 0 8px rgba(16,185,129,0.3)" : "0 0 8px rgba(239,68,68,0.3)" }} data-testid={`text-netflow-${coin.symbol}`}>
-                            {isInflow ? "" : "-"}${formatCompact(Math.abs(coin.netFlow))}
+                          <div className={`text-lg font-bold ${isInflow ? "text-emerald-400" : "text-red-400"}`} style={{ textShadow: isInflow ? "0 0 10px rgba(16,185,129,0.3)" : "0 0 10px rgba(239,68,68,0.3)" }} data-testid={`text-netflow-${selectedCoin.symbol}`}>
+                            {isInflow ? "" : "-"}${formatCompact(Math.abs(selectedCoin.netFlow))}
                           </div>
-                          <div className={`text-[10px] font-medium ${coin.change24h >= 0 ? "text-emerald-400" : "text-red-400"}`}>
-                            {coin.change24h >= 0 ? "+" : ""}{coin.change24h.toFixed(1)}%
+                          <div className={`text-xs font-medium ${selectedCoin.change24h >= 0 ? "text-emerald-400" : "text-red-400"}`}>
+                            {selectedCoin.change24h >= 0 ? "+" : ""}{selectedCoin.change24h.toFixed(2)}%
+                          </div>
+                          <div className="text-[10px] text-muted-foreground mt-0.5">
+                            Price: {selectedCoinTab === "DOGE" ? `$${selectedCoin.price.toFixed(5)}` : formatUSD(selectedCoin.price)}
                           </div>
                         </div>
                       </div>
                     </CardContent>
                   </Card>
                 );
-              })}
-            </div>
-            <Card className="border-border bg-card mt-3">
-              <CardContent className="p-3">
-                <div className="flex items-center justify-between gap-2 flex-wrap">
-                  <span className="text-xs text-muted-foreground">TOTAL NET INFLOW</span>
-                  <span className={`text-lg font-bold ${sentimentData.totalNetInflow >= 0 ? "text-emerald-400" : "text-red-400"}`} style={{ textShadow: sentimentData.totalNetInflow >= 0 ? "0 0 8px rgba(16,185,129,0.3)" : "0 0 8px rgba(239,68,68,0.3)" }} data-testid="text-total-net-inflow">
-                    {sentimentData.totalNetInflow >= 0 ? "" : "-"}${formatCompact(Math.abs(sentimentData.totalNetInflow))}
-                  </span>
+              })()}
+              {otherCoins.length > 0 && (
+                <div className="space-y-1.5 mt-3">
+                  <div className="text-[10px] text-muted-foreground uppercase font-medium">Other Coins</div>
+                  {otherCoins.map((coin) => {
+                    const isInflow = coin.netFlow >= 0;
+                    return (
+                      <Card key={coin.id} className="border-border bg-card cursor-pointer hover-elevate" onClick={() => setSelectedCoinTab(coin.symbol)} data-testid={`sentiment-card-${coin.symbol}`}>
+                        <CardContent className="p-2.5">
+                          <div className="flex items-center justify-between gap-2 flex-wrap">
+                            <div className="flex items-center gap-2 min-w-0 flex-wrap">
+                              <div className="relative h-6 w-6 rounded-full shrink-0 flex items-center justify-center">
+                                {coin.image ? <img src={coin.image} alt={coin.name} className="h-6 w-6 rounded-full" /> : <div className="h-6 w-6 rounded-full bg-card flex items-center justify-center text-[9px] font-bold">{coin.symbol}</div>}
+                              </div>
+                              <span className="text-xs font-medium">{coin.symbol}</span>
+                            </div>
+                            <div className="flex items-center gap-3 flex-wrap">
+                              <span className={`text-xs font-bold ${isInflow ? "text-emerald-400" : "text-red-400"}`} data-testid={`text-netflow-${coin.symbol}`}>
+                                {isInflow ? "" : "-"}${formatCompact(Math.abs(coin.netFlow))}
+                              </span>
+                              <span className={`text-[10px] font-medium ${coin.change24h >= 0 ? "text-emerald-400" : "text-red-400"}`}>
+                                {coin.change24h >= 0 ? "+" : ""}{coin.change24h.toFixed(1)}%
+                              </span>
+                            </div>
+                          </div>
+                        </CardContent>
+                      </Card>
+                    );
+                  })}
                 </div>
-              </CardContent>
-            </Card>
-          </>
-        ) : null}
+              )}
+              <Card className="border-border bg-card mt-3">
+                <CardContent className="p-3">
+                  <div className="flex items-center justify-between gap-2 flex-wrap">
+                    <span className="text-xs text-muted-foreground">TOTAL NET INFLOW</span>
+                    <span className={`text-lg font-bold ${sentimentData.totalNetInflow >= 0 ? "text-emerald-400" : "text-red-400"}`} style={{ textShadow: sentimentData.totalNetInflow >= 0 ? "0 0 8px rgba(16,185,129,0.3)" : "0 0 8px rgba(239,68,68,0.3)" }} data-testid="text-total-net-inflow">
+                      {sentimentData.totalNetInflow >= 0 ? "" : "-"}${formatCompact(Math.abs(sentimentData.totalNetInflow))}
+                    </span>
+                  </div>
+                </CardContent>
+              </Card>
+            </>
+          );
+        })() : null}
       </div>
 
-      {/* Futures Open Interest */}
+      {/* Futures Open Interest - Selected Coin */}
       <div className="px-4" style={{ animation: "fadeSlideIn 0.8s ease-out" }}>
         <div className="flex items-center gap-2 mb-3 flex-wrap">
           <Activity className="h-4 w-4 text-emerald-400" />
-          <h2 className="text-sm font-bold">Futures Open Interest</h2>
+          <h2 className="text-sm font-bold">{selectedCoinTab} Futures Open Interest</h2>
         </div>
         {oiLoading ? (
           <div className="space-y-2">{[1,2,3].map(i => <Skeleton key={i} className="h-14 w-full rounded-md" />)}</div>
-        ) : futuresData?.positions ? (
-          <>
-            <Card className="border-border bg-card">
-              <CardContent className="p-0">
-                {futuresData.positions.map((item, idx) => {
-                  const isPositive = item.priceChange24h >= 0;
-                  return (
-                    <div key={`${item.pair}-${item.exchange}`} className={`flex items-center justify-between gap-2 p-3 flex-wrap ${idx < futuresData.positions.length - 1 ? "border-b border-border" : ""}`} data-testid={`futures-oi-${item.symbol}-${item.exchange}`}>
-                      <div className="flex items-center gap-2 min-w-0 flex-wrap">
-                        <div className="w-16">
-                          <div className="text-xs font-bold">{item.pair}</div>
-                          <div className="text-[10px] text-muted-foreground">{item.exchange}</div>
+        ) : futuresData?.positions ? (() => {
+          const filteredPositions = futuresData.positions.filter(p => p.symbol === selectedCoinTab);
+          const filteredOI = filteredPositions.reduce((sum, p) => sum + p.openInterestValue, 0);
+          return filteredPositions.length > 0 ? (
+            <>
+              <Card className="border-border bg-card">
+                <CardContent className="p-0">
+                  {filteredPositions.map((item, idx) => {
+                    const isPositive = item.priceChange24h >= 0;
+                    return (
+                      <div key={`${item.pair}-${item.exchange}`} className={`flex items-center justify-between gap-2 p-3 flex-wrap ${idx < filteredPositions.length - 1 ? "border-b border-border" : ""}`} data-testid={`futures-oi-${item.symbol}-${item.exchange}`}>
+                        <div className="flex items-center gap-2 min-w-0 flex-wrap">
+                          <div className="w-16">
+                            <div className="text-xs font-bold">{item.pair}</div>
+                            <div className="text-[10px] text-muted-foreground">{item.exchange}</div>
+                          </div>
+                          <Badge className={`text-[9px] no-default-hover-elevate no-default-active-elevate ${isPositive ? "bg-emerald-500/20 text-emerald-400 border-emerald-500/30" : "bg-red-500/20 text-red-400 border-red-500/30"}`}>
+                            {isPositive ? "+" : ""}{item.priceChange24h.toFixed(2)}%
+                          </Badge>
                         </div>
-                        <Badge className={`text-[9px] no-default-hover-elevate no-default-active-elevate ${isPositive ? "bg-emerald-500/20 text-emerald-400 border-emerald-500/30" : "bg-red-500/20 text-red-400 border-red-500/30"}`}>
-                          {isPositive ? "+" : ""}{item.priceChange24h.toFixed(2)}%
-                        </Badge>
+                        <div className="text-right">
+                          <div className="text-xs font-bold" data-testid={`text-oi-value-${item.symbol}-${item.exchange}`}>${formatCompact(item.openInterestValue)}</div>
+                          <div className="text-[10px] text-muted-foreground">{item.openInterest.toLocaleString()} contracts</div>
+                        </div>
                       </div>
-                      <div className="text-right">
-                        <div className="text-xs font-bold" data-testid={`text-oi-value-${item.symbol}-${item.exchange}`}>${formatCompact(item.openInterestValue)}</div>
-                        <div className="text-[10px] text-muted-foreground">{item.openInterest.toLocaleString()} contracts</div>
-                      </div>
-                    </div>
-                  );
-                })}
-              </CardContent>
-            </Card>
-            <Card className="border-border bg-card mt-3">
-              <CardContent className="p-3">
-                <div className="flex items-center justify-between gap-2 flex-wrap">
-                  <span className="text-xs text-muted-foreground">TOTAL OI</span>
-                  <span className="text-lg font-bold text-emerald-400" style={{ textShadow: "0 0 8px rgba(16,185,129,0.3)" }} data-testid="text-total-oi">${formatCompact(futuresData.totalOI)}</span>
-                </div>
-              </CardContent>
-            </Card>
-          </>
-        ) : (
+                    );
+                  })}
+                </CardContent>
+              </Card>
+              <Card className="border-border bg-card mt-3">
+                <CardContent className="p-3">
+                  <div className="flex items-center justify-between gap-2 flex-wrap">
+                    <span className="text-xs text-muted-foreground">{selectedCoinTab} TOTAL OI</span>
+                    <span className="text-lg font-bold text-emerald-400" style={{ textShadow: "0 0 8px rgba(16,185,129,0.3)" }} data-testid="text-total-oi">${formatCompact(filteredOI)}</span>
+                  </div>
+                </CardContent>
+              </Card>
+            </>
+          ) : (
+            <Card className="border-border bg-card"><CardContent className="p-4 text-center text-xs text-muted-foreground">No {selectedCoinTab} futures data available</CardContent></Card>
+          );
+        })() : (
           <Card className="border-border bg-card"><CardContent className="p-4 text-center text-xs text-muted-foreground">Futures data unavailable</CardContent></Card>
         )}
       </div>

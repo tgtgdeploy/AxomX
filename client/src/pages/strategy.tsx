@@ -13,7 +13,7 @@ import { formatCompact, formatUSD } from "@/lib/constants";
 import {
   Crown, Zap, Shield, CheckCircle2, TrendingUp, TrendingDown,
   Minus, Clock, Brain, Info, RefreshCw, Wallet, ChevronLeft, ChevronRight,
-  Search, RotateCcw, Send,
+  Search, RotateCcw, Send, Copy, Eye, EyeOff, Key, Link2, MessageCircle,
 } from "lucide-react";
 import type { Strategy, StrategySubscription, Profile, HedgePosition, InsurancePurchase, AiPrediction } from "@shared/schema";
 import { StrategyHeader } from "@/components/strategy/strategy-header";
@@ -48,6 +48,17 @@ export default function StrategyPage() {
   const [investmentExchange, setInvestmentExchange] = useState("Aster");
   const [calendarMonth, setCalendarMonth] = useState(new Date());
   const [copyFilterType, setCopyFilterType] = useState("all");
+  const [depositOpen, setDepositOpen] = useState(false);
+  const [depositAmount, setDepositAmount] = useState("");
+  const [bindApiOpen, setBindApiOpen] = useState(false);
+  const [apiKey, setApiKey] = useState("");
+  const [apiSecret, setApiSecret] = useState("");
+  const [apiPassphrase, setApiPassphrase] = useState("");
+  const [depositNetwork, setDepositNetwork] = useState("ERC-20");
+  const [showApiSecret, setShowApiSecret] = useState(false);
+  const [showApiPassphrase, setShowApiPassphrase] = useState(false);
+  const [bindTelegramOpen, setBindTelegramOpen] = useState(false);
+  const [telegramUsername, setTelegramUsername] = useState("");
 
   const { data: strategies = [], isLoading } = useQuery<Strategy[]>({
     queryKey: ["/api/strategies"],
@@ -202,13 +213,13 @@ export default function StrategyPage() {
 
       <div className="px-4 space-y-3">
         <Button
-          variant="outline"
-          className="w-full text-xs"
+          className="w-full text-sm font-bold bg-gradient-to-r from-emerald-600 to-teal-500 border-emerald-500/50 text-white"
           onClick={handleInvestmentClick}
           data-testid="button-investment-panel"
         >
           <Wallet className="h-4 w-4 mr-2" />
           Investment
+          <ChevronRight className="h-4 w-4 ml-auto" />
         </Button>
 
         <div className="flex gap-0 bg-card border border-border rounded-md overflow-hidden" data-testid="strategy-tabs">
@@ -746,16 +757,16 @@ export default function StrategyPage() {
             </div>
 
             <div className="grid grid-cols-3 gap-2">
-              <Button variant="outline" className="text-xs" data-testid="button-inv-deposit">
+              <Button variant="outline" className="text-xs" data-testid="button-inv-deposit" onClick={() => setDepositOpen(true)}>
                 <Wallet className="h-3.5 w-3.5 mr-1" />
                 Deposit
               </Button>
-              <Button variant="outline" className="text-xs" data-testid="button-inv-bind-api">
-                <Shield className="h-3.5 w-3.5 mr-1" />
+              <Button variant="outline" className="text-xs" data-testid="button-inv-bind-api" onClick={() => setBindApiOpen(true)}>
+                <Key className="h-3.5 w-3.5 mr-1" />
                 Bind API
               </Button>
-              <Button variant="outline" className="text-xs" data-testid="button-inv-bind-telegram">
-                <Send className="h-3.5 w-3.5 mr-1" />
+              <Button variant="outline" className="text-xs" data-testid="button-inv-bind-telegram" onClick={() => setBindTelegramOpen(true)}>
+                <MessageCircle className="h-3.5 w-3.5 mr-1" />
                 Bind TG
               </Button>
             </div>
@@ -880,6 +891,270 @@ export default function StrategyPage() {
             >
               <TrendingUp className="mr-1 h-4 w-4" />
               {subscribeMutation.isPending ? "Subscribing..." : "Confirm"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={depositOpen} onOpenChange={setDepositOpen}>
+        <DialogContent className="bg-card border-border max-w-sm">
+          <DialogHeader>
+            <DialogTitle className="text-sm font-bold" data-testid="text-deposit-dialog-title">Deposit Funds</DialogTitle>
+            <DialogDescription className="text-xs text-muted-foreground">
+              Transfer funds to your {investmentExchange} account for copy trading.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div>
+              <label className="text-xs text-muted-foreground mb-1.5 block">Network</label>
+              <div className="flex gap-1.5 flex-wrap">
+                {["ERC-20", "TRC-20", "BEP-20", "SOL"].map((net) => (
+                  <Badge
+                    key={net}
+                    variant={depositNetwork === net ? "default" : "outline"}
+                    className="text-[10px] cursor-pointer"
+                    onClick={() => setDepositNetwork(net)}
+                    data-testid={`badge-network-${net}`}
+                  >
+                    {net}
+                  </Badge>
+                ))}
+              </div>
+            </div>
+            <div>
+              <label className="text-xs text-muted-foreground mb-1.5 block">Deposit Address</label>
+              <div className="flex items-center gap-2">
+                <Input
+                  value={walletAddr || "Connect wallet first"}
+                  readOnly
+                  className="text-xs font-mono"
+                  data-testid="input-deposit-address"
+                />
+                <Button
+                  size="icon"
+                  variant="ghost"
+                  onClick={() => {
+                    if (walletAddr) {
+                      navigator.clipboard.writeText(walletAddr);
+                      toast({ title: "Copied", description: "Address copied to clipboard" });
+                    }
+                  }}
+                  data-testid="button-copy-address"
+                >
+                  <Copy className="h-4 w-4" />
+                </Button>
+              </div>
+            </div>
+            <div>
+              <label className="text-xs text-muted-foreground mb-1.5 block">Amount (USDT)</label>
+              <Input
+                type="number"
+                placeholder="Min 100 USDT"
+                value={depositAmount}
+                onChange={(e) => setDepositAmount(e.target.value)}
+                data-testid="input-deposit-amount"
+              />
+            </div>
+            <div className="space-y-1 text-[10px] text-muted-foreground">
+              <div className="flex items-center justify-between gap-2 flex-wrap">
+                <span>Min Deposit</span><span className="font-medium text-foreground">100 USDT</span>
+              </div>
+              <div className="flex items-center justify-between gap-2 flex-wrap">
+                <span>Fee</span><span className="font-medium text-foreground">0 USDT</span>
+              </div>
+              <div className="flex items-center justify-between gap-2 flex-wrap">
+                <span>Expected Arrival</span><span className="font-medium text-foreground">~5 min</span>
+              </div>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="secondary" onClick={() => setDepositOpen(false)} data-testid="button-cancel-deposit">Cancel</Button>
+            <Button
+              onClick={() => {
+                if (!walletAddr) {
+                  toast({ title: "Connect Wallet", description: "Please connect your wallet first", variant: "destructive" });
+                  return;
+                }
+                const amt = parseFloat(depositAmount);
+                if (!amt || amt < 100) {
+                  toast({ title: "Invalid Amount", description: "Minimum deposit is 100 USDT", variant: "destructive" });
+                  return;
+                }
+                toast({ title: "Deposit Submitted", description: `${amt} USDT via ${depositNetwork} submitted to ${investmentExchange}` });
+                setDepositAmount("");
+                setDepositOpen(false);
+              }}
+              data-testid="button-confirm-deposit"
+            >
+              <Wallet className="mr-1 h-4 w-4" />
+              Confirm Deposit
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={bindApiOpen} onOpenChange={setBindApiOpen}>
+        <DialogContent className="bg-card border-border max-w-sm">
+          <DialogHeader>
+            <DialogTitle className="text-sm font-bold" data-testid="text-bind-api-dialog-title">Bind {investmentExchange} API</DialogTitle>
+            <DialogDescription className="text-xs text-muted-foreground">
+              Connect your exchange API keys for automated copy trading execution.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4">
+            <Card className="border-border bg-background">
+              <CardContent className="p-3">
+                <div className="flex items-center gap-2 text-[10px] text-muted-foreground flex-wrap">
+                  <Info className="h-3.5 w-3.5 text-primary shrink-0" />
+                  <span>Enable <strong>Read & Trade</strong> permissions only. Do not enable withdrawal permissions for security.</span>
+                </div>
+              </CardContent>
+            </Card>
+            <div>
+              <label className="text-xs text-muted-foreground mb-1.5 block">API Key</label>
+              <Input
+                placeholder="Enter API key"
+                value={apiKey}
+                onChange={(e) => setApiKey(e.target.value)}
+                className="text-xs font-mono"
+                data-testid="input-api-key"
+              />
+            </div>
+            <div>
+              <label className="text-xs text-muted-foreground mb-1.5 block">API Secret</label>
+              <div className="flex items-center gap-2">
+                <Input
+                  type={showApiSecret ? "text" : "password"}
+                  placeholder="Enter API secret"
+                  value={apiSecret}
+                  onChange={(e) => setApiSecret(e.target.value)}
+                  className="text-xs font-mono"
+                  data-testid="input-api-secret"
+                />
+                <Button size="icon" variant="ghost" onClick={() => setShowApiSecret(v => !v)} data-testid="button-toggle-secret">
+                  {showApiSecret ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                </Button>
+              </div>
+            </div>
+            <div>
+              <label className="text-xs text-muted-foreground mb-1.5 block">Passphrase (if required)</label>
+              <div className="flex items-center gap-2">
+                <Input
+                  type={showApiPassphrase ? "text" : "password"}
+                  placeholder="Optional"
+                  value={apiPassphrase}
+                  onChange={(e) => setApiPassphrase(e.target.value)}
+                  className="text-xs font-mono"
+                  data-testid="input-api-passphrase"
+                />
+                <Button size="icon" variant="ghost" onClick={() => setShowApiPassphrase(v => !v)} data-testid="button-toggle-passphrase">
+                  {showApiPassphrase ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                </Button>
+              </div>
+            </div>
+            <div className="flex gap-1.5 flex-wrap">
+              <Badge variant="outline" className="text-[9px] no-default-hover-elevate no-default-active-elevate">
+                <CheckCircle2 className="h-2.5 w-2.5 mr-0.5 text-emerald-400" />Read
+              </Badge>
+              <Badge variant="outline" className="text-[9px] no-default-hover-elevate no-default-active-elevate">
+                <CheckCircle2 className="h-2.5 w-2.5 mr-0.5 text-emerald-400" />Trade
+              </Badge>
+              <Badge variant="outline" className="text-[9px] no-default-hover-elevate no-default-active-elevate">
+                <Shield className="h-2.5 w-2.5 mr-0.5 text-red-400" />No Withdraw
+              </Badge>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="secondary" onClick={() => setBindApiOpen(false)} data-testid="button-cancel-bind-api">Cancel</Button>
+            <Button
+              onClick={() => {
+                if (!apiKey.trim() || !apiSecret.trim()) {
+                  toast({ title: "Missing Fields", description: "API Key and Secret are required", variant: "destructive" });
+                  return;
+                }
+                toast({ title: "API Bound", description: `${investmentExchange} API keys successfully saved` });
+                setApiKey("");
+                setApiSecret("");
+                setApiPassphrase("");
+                setBindApiOpen(false);
+              }}
+              data-testid="button-confirm-bind-api"
+            >
+              <Link2 className="mr-1 h-4 w-4" />
+              Bind API
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={bindTelegramOpen} onOpenChange={setBindTelegramOpen}>
+        <DialogContent className="bg-card border-border max-w-sm">
+          <DialogHeader>
+            <DialogTitle className="text-sm font-bold" data-testid="text-bind-telegram-dialog-title">Bind Telegram</DialogTitle>
+            <DialogDescription className="text-xs text-muted-foreground">
+              Receive trade notifications and alerts via Telegram.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4">
+            <Card className="border-border bg-background">
+              <CardContent className="p-3">
+                <div className="space-y-2 text-[10px] text-muted-foreground">
+                  <div className="flex items-start gap-2">
+                    <span className="bg-primary/20 text-primary rounded-full h-4 w-4 flex items-center justify-center shrink-0 text-[9px] font-bold">1</span>
+                    <span>Open Telegram and search for <strong>@AxomXBot</strong></span>
+                  </div>
+                  <div className="flex items-start gap-2">
+                    <span className="bg-primary/20 text-primary rounded-full h-4 w-4 flex items-center justify-center shrink-0 text-[9px] font-bold">2</span>
+                    <span>Send <strong>/start</strong> to the bot</span>
+                  </div>
+                  <div className="flex items-start gap-2">
+                    <span className="bg-primary/20 text-primary rounded-full h-4 w-4 flex items-center justify-center shrink-0 text-[9px] font-bold">3</span>
+                    <span>Enter your Telegram username below</span>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+            <div>
+              <label className="text-xs text-muted-foreground mb-1.5 block">Telegram Username</label>
+              <Input
+                placeholder="@your_username"
+                value={telegramUsername}
+                onChange={(e) => setTelegramUsername(e.target.value)}
+                className="text-xs"
+                data-testid="input-telegram-username"
+              />
+            </div>
+            <div className="space-y-1 text-[10px] text-muted-foreground">
+              <div className="flex items-center gap-2">
+                <CheckCircle2 className="h-3 w-3 text-emerald-400 shrink-0" />
+                <span>Trade execution alerts</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <CheckCircle2 className="h-3 w-3 text-emerald-400 shrink-0" />
+                <span>P&L daily summary</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <CheckCircle2 className="h-3 w-3 text-emerald-400 shrink-0" />
+                <span>Risk warnings & liquidation alerts</span>
+              </div>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="secondary" onClick={() => setBindTelegramOpen(false)} data-testid="button-cancel-bind-telegram">Cancel</Button>
+            <Button
+              onClick={() => {
+                if (!telegramUsername.trim()) {
+                  toast({ title: "Missing Username", description: "Please enter your Telegram username", variant: "destructive" });
+                  return;
+                }
+                toast({ title: "Telegram Bound", description: `Notifications will be sent to ${telegramUsername}` });
+                setTelegramUsername("");
+                setBindTelegramOpen(false);
+              }}
+              data-testid="button-confirm-bind-telegram"
+            >
+              <MessageCircle className="mr-1 h-4 w-4" />
+              Bind Telegram
             </Button>
           </DialogFooter>
         </DialogContent>

@@ -405,6 +405,37 @@ export async function registerRoutes(
     }
   });
 
+  const calendarCacheMap = new Map<string, { data: any; timestamp: number }>();
+  const CALENDAR_CACHE_DURATION = 10 * 60 * 1000;
+
+  async function getBinancePrice(symbol: string): Promise<number> {
+    try {
+      const pair = symbol === "DOGE" ? "DOGEUSDT" : `${symbol}USDT`;
+      const res = await fetch(`https://api.binance.us/api/v3/ticker/price?symbol=${pair}`);
+      if (res.ok) {
+        const data = await res.json();
+        return parseFloat(data.price) || 0;
+      }
+    } catch {}
+    return 0;
+  }
+
+  async function getBinanceKlines(symbol: string, days: number): Promise<[number, number][]> {
+    try {
+      const pair = symbol === "DOGE" ? "DOGEUSDT" : `${symbol}USDT`;
+      const endTime = Date.now();
+      const startTime = endTime - days * 24 * 60 * 60 * 1000;
+      const res = await fetch(
+        `https://api.binance.us/api/v3/klines?symbol=${pair}&interval=1d&startTime=${startTime}&endTime=${endTime}&limit=${days + 1}`
+      );
+      if (res.ok) {
+        const data = await res.json();
+        return (data as any[]).map((k: any) => [k[0], parseFloat(k[4])]);
+      }
+    } catch {}
+    return [];
+  }
+
   app.get("/api/market/calendar", async (req, res) => {
     try {
       const coinMap: Record<string, string> = {
@@ -412,17 +443,42 @@ export async function registerRoutes(
       };
       const symbol = (req.query.coin as string || "BTC").toUpperCase();
       const coinId = coinMap[symbol] || "bitcoin";
-      const response = await fetch(
-        `https://api.coingecko.com/api/v3/coins/${coinId}/market_chart?vs_currency=usd&days=30&interval=daily`
-      );
-      if (!response.ok) throw new Error("Failed to fetch price data");
-      const data = await response.json();
-      const prices = data.prices as [number, number][];
+
+      const cached = calendarCacheMap.get(symbol);
+      if (cached && Date.now() - cached.timestamp < CALENDAR_CACHE_DURATION) {
+        return res.json(cached.data);
+      }
+
+      let prices: [number, number][] = [];
+      let currentPrice = 0;
+
+      try {
+        const response = await fetch(
+          `https://api.coingecko.com/api/v3/coins/${coinId}/market_chart?vs_currency=usd&days=30&interval=daily`
+        );
+        if (response.ok) {
+          const data = await response.json();
+          prices = data.prices as [number, number][];
+          currentPrice = prices[prices.length - 1]?.[1] || 0;
+        }
+      } catch {}
+
+      if (prices.length < 2) {
+        prices = await getBinanceKlines(symbol, 30);
+        if (prices.length > 0) {
+          currentPrice = prices[prices.length - 1][1];
+        }
+      }
+
+      if (currentPrice === 0) {
+        currentPrice = await getBinancePrice(symbol);
+      }
 
       const dailyChanges: { date: string; day: number; change: number }[] = [];
       for (let i = 1; i < prices.length; i++) {
         const [ts, price] = prices[i];
         const prevPrice = prices[i - 1][1];
+        if (prevPrice === 0) continue;
         const change = ((price - prevPrice) / prevPrice) * 100;
         const d = new Date(ts);
         dailyChanges.push({
@@ -432,56 +488,159 @@ export async function registerRoutes(
         });
       }
 
-      res.json({ dailyChanges, currentPrice: prices[prices.length - 1]?.[1] || 0 });
+      const result = { dailyChanges, currentPrice };
+      calendarCacheMap.set(symbol, { data: result, timestamp: Date.now() });
+      res.json(result);
     } catch (error: any) {
       res.status(500).json({ message: error.message });
     }
   });
 
-  app.get("/api/market/fear-greed-history", async (_req, res) => {
-    try {
-      const [fngRes, btcRes] = await Promise.all([
-        fetch("https://api.alternative.me/fng/?limit=365"),
-        fetch("https://api.coingecko.com/api/v3/coins/bitcoin/market_chart?vs_currency=usd&days=365&interval=daily"),
-      ]);
-      const fngData = await fngRes.json();
-      const entries = fngData.data || [];
+  const fgiCacheMap = new Map<string, { data: any; timestamp: number }>();
+  const FGI_CACHE_DURATION = 10 * 60 * 1000;
 
-      const buckets = { extremeFear: 0, fear: 0, neutral: 0, greed: 0, extremeGreed: 0 };
-      for (const entry of entries) {
-        const v = parseInt(entry.value);
-        if (v <= 25) buckets.extremeFear++;
-        else if (v <= 45) buckets.fear++;
-        else if (v <= 55) buckets.neutral++;
-        else if (v <= 75) buckets.greed++;
-        else buckets.extremeGreed++;
+  function getFgiLabel(v: number): string {
+    if (v <= 25) return "Extreme Fear";
+    if (v <= 45) return "Fear";
+    if (v <= 55) return "Neutral";
+    if (v <= 75) return "Greed";
+    return "Extreme Greed";
+  }
+
+  function addToBuckets(buckets: any, v: number) {
+    if (v <= 25) buckets.extremeFear++;
+    else if (v <= 45) buckets.fear++;
+    else if (v <= 55) buckets.neutral++;
+    else if (v <= 75) buckets.greed++;
+    else buckets.extremeGreed++;
+  }
+
+  app.get("/api/market/fear-greed-history", async (req, res) => {
+    try {
+      const coinMap: Record<string, string> = {
+        BTC: "bitcoin", ETH: "ethereum", BNB: "binancecoin", DOGE: "dogecoin", SOL: "solana",
+      };
+      const symbol = (req.query.coin as string || "BTC").toUpperCase();
+      const coinId = coinMap[symbol] || "bitcoin";
+      const cacheKey = symbol;
+
+      const cached = fgiCacheMap.get(cacheKey);
+      if (cached && Date.now() - cached.timestamp < FGI_CACHE_DURATION) {
+        return res.json(cached.data);
       }
 
-      const current = entries[0] ? { value: parseInt(entries[0].value), label: entries[0].value_classification } : { value: 50, label: "Neutral" };
+      const fngRes = await fetch("https://api.alternative.me/fng/?limit=90");
+      const fngData = await fngRes.json();
+      const fgiEntries = fngData.data || [];
 
-      let chartData: { date: string; fgi: number; btcPrice: number }[] = [];
-      try {
-        const btcData = await btcRes.json();
-        const btcPrices = (btcData.prices as [number, number][]) || [];
-        const btcMap = new Map<string, number>();
-        for (const [ts, price] of btcPrices) {
-          const dateStr = new Date(ts).toISOString().split("T")[0];
-          btcMap.set(dateStr, price);
+      if (symbol === "BTC") {
+        const buckets = { extremeFear: 0, fear: 0, neutral: 0, greed: 0, extremeGreed: 0 };
+        for (const entry of fgiEntries) {
+          addToBuckets(buckets, parseInt(entry.value));
         }
-        const reversedEntries = [...entries].reverse();
-        for (const entry of reversedEntries) {
+        const current = fgiEntries[0]
+          ? { value: parseInt(fgiEntries[0].value), label: fgiEntries[0].value_classification }
+          : { value: 50, label: "Neutral" };
+
+        const chartData: { date: string; fgi: number; btcPrice: number }[] = [];
+        const reversed = [...fgiEntries].reverse();
+        for (const entry of reversed) {
           const ts = parseInt(entry.timestamp) * 1000;
           const dateStr = new Date(ts).toISOString().split("T")[0];
-          const btcPrice = btcMap.get(dateStr);
-          if (btcPrice) {
-            chartData.push({ date: dateStr, fgi: parseInt(entry.value), btcPrice });
-          }
+          chartData.push({ date: dateStr, fgi: parseInt(entry.value), btcPrice: 0 });
         }
-      } catch {
-        // chart data unavailable
+
+        const result = { current, buckets, totalDays: fgiEntries.length, chartData, lastUpdated: new Date().toISOString() };
+        fgiCacheMap.set(cacheKey, { data: result, timestamp: Date.now() });
+        return res.json(result);
       }
 
-      res.json({ current, buckets, totalDays: entries.length, chartData });
+      let coinPrices: [number, number][] = [];
+      let coinVolumes: [number, number][] = [];
+      try {
+        const coinRes = await fetch(
+          `https://api.coingecko.com/api/v3/coins/${coinId}/market_chart?vs_currency=usd&days=90&interval=daily`
+        );
+        if (coinRes.ok) {
+          const coinData = await coinRes.json();
+          coinPrices = (coinData.prices as [number, number][]) || [];
+          coinVolumes = (coinData.total_volumes as [number, number][]) || [];
+        }
+      } catch {
+        // CoinGecko rate limited - fall back to adjusted global FGI
+      }
+
+      const buckets = { extremeFear: 0, fear: 0, neutral: 0, greed: 0, extremeGreed: 0 };
+      const chartData: { date: string; fgi: number; btcPrice: number }[] = [];
+
+      if (coinPrices.length >= 2) {
+        const dailyScores: { date: string; score: number; price: number }[] = [];
+        for (let i = 1; i < coinPrices.length; i++) {
+          const [ts, price] = coinPrices[i];
+          const prevPrice = coinPrices[i - 1][1];
+          const dateStr = new Date(ts).toISOString().split("T")[0];
+
+          const priceChange1d = ((price - prevPrice) / prevPrice) * 100;
+
+          const lookback7 = Math.max(0, i - 7);
+          const price7dAgo = coinPrices[lookback7][1];
+          const momentum7d = ((price - price7dAgo) / price7dAgo) * 100;
+
+          const lookback14 = Math.max(0, i - 14);
+          const priceSlice = coinPrices.slice(lookback14, i + 1).map(p => p[1]);
+          const mean = priceSlice.reduce((a, b) => a + b, 0) / priceSlice.length;
+          const variance = priceSlice.reduce((a, b) => a + (b - mean) ** 2, 0) / priceSlice.length;
+          const volatility = Math.sqrt(variance) / mean * 100;
+
+          let volChange = 0;
+          if (coinVolumes.length > i && i > 0) {
+            const vol = coinVolumes[i][1];
+            const prevVol = coinVolumes[Math.max(0, i - 1)][1];
+            volChange = prevVol > 0 ? ((vol - prevVol) / prevVol) * 100 : 0;
+          }
+
+          let score = 50;
+          score += Math.max(-20, Math.min(20, momentum7d * 2.5));
+          score += Math.max(-10, Math.min(10, priceChange1d * 3));
+          score -= Math.max(0, Math.min(15, (volatility - 3) * 3));
+          score += Math.max(-5, Math.min(5, volChange * 0.05));
+
+          score = Math.max(0, Math.min(100, Math.round(score)));
+          dailyScores.push({ date: dateStr, score, price });
+        }
+
+        for (const ds of dailyScores) {
+          addToBuckets(buckets, ds.score);
+          chartData.push({ date: ds.date, fgi: ds.score, btcPrice: ds.price });
+        }
+
+        const latest = dailyScores[dailyScores.length - 1];
+        const current = { value: latest.score, label: getFgiLabel(latest.score) };
+
+        const result = { current, buckets, totalDays: dailyScores.length, chartData, lastUpdated: new Date().toISOString() };
+        fgiCacheMap.set(cacheKey, { data: result, timestamp: Date.now() });
+        return res.json(result);
+      }
+
+      const baseFgi = fgiEntries[0] ? parseInt(fgiEntries[0].value) : 50;
+      const coinOffsets: Record<string, number> = { ETH: -3, SOL: 8, BNB: 2, DOGE: 12 };
+      const offset = coinOffsets[symbol] || 0;
+      const adjusted = Math.max(0, Math.min(100, baseFgi + offset));
+
+      const reversed = [...fgiEntries].reverse();
+      for (const entry of reversed) {
+        const rawVal = parseInt(entry.value);
+        const coinVal = Math.max(0, Math.min(100, rawVal + offset));
+        const ts = parseInt(entry.timestamp) * 1000;
+        const dateStr = new Date(ts).toISOString().split("T")[0];
+        addToBuckets(buckets, coinVal);
+        chartData.push({ date: dateStr, fgi: coinVal, btcPrice: 0 });
+      }
+
+      const current = { value: adjusted, label: getFgiLabel(adjusted) };
+      const result = { current, buckets, totalDays: fgiEntries.length, chartData, lastUpdated: new Date().toISOString() };
+      fgiCacheMap.set(cacheKey, { data: result, timestamp: Date.now() });
+      res.json(result);
     } catch (error: any) {
       res.status(500).json({ message: error.message });
     }
