@@ -9,20 +9,40 @@ import { useQuery, useMutation } from "@tanstack/react-query";
 import { useActiveAccount } from "thirdweb/react";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest, queryClient } from "@/lib/queryClient";
-import { formatCompact } from "@/lib/constants";
-import { Crown, Zap, Shield, CheckCircle2, TrendingUp } from "lucide-react";
-import type { Strategy, StrategySubscription, Profile } from "@shared/schema";
+import { formatCompact, formatUSD } from "@/lib/constants";
+import {
+  Crown, Zap, Shield, CheckCircle2, TrendingUp, TrendingDown,
+  Minus, Clock, Brain, Info, RefreshCw, Wallet,
+} from "lucide-react";
+import type { Strategy, StrategySubscription, Profile, HedgePosition, InsurancePurchase, AiPrediction } from "@shared/schema";
 import { StrategyHeader } from "@/components/strategy/strategy-header";
 import { StrategyCard } from "@/components/strategy/strategy-card";
+
+type TabId = "strategies" | "hedge" | "predictions";
+
+const TABS: { id: TabId; label: string }[] = [
+  { id: "strategies", label: "Strategy List" },
+  { id: "hedge", label: "Hedge Protection" },
+  { id: "predictions", label: "Predictions" },
+];
+
+const EXCHANGES = [
+  { name: "Aster", tag: "Aster" },
+  { name: "Hyperliquid", tag: "Hyperliquid" },
+  { name: "Binance", tag: "Binance" },
+  { name: "OKX", tag: "OKX" },
+  { name: "Bybit", tag: "Bybit" },
+];
 
 export default function StrategyPage() {
   const account = useActiveAccount();
   const { toast } = useToast();
   const walletAddr = account?.address || "";
-
+  const [activeTab, setActiveTab] = useState<TabId>("strategies");
   const [selectedStrategy, setSelectedStrategy] = useState<Strategy | null>(null);
   const [subscribeOpen, setSubscribeOpen] = useState(false);
   const [capitalAmount, setCapitalAmount] = useState("");
+  const [hedgeAmount, setHedgeAmount] = useState("300");
 
   const { data: strategies = [], isLoading } = useQuery<Strategy[]>({
     queryKey: ["/api/strategies"],
@@ -38,6 +58,26 @@ export default function StrategyPage() {
     enabled: !!walletAddr,
   });
 
+  const { data: hedgePositions = [] } = useQuery<HedgePosition[]>({
+    queryKey: ["/api/hedge/positions", walletAddr],
+    enabled: !!walletAddr,
+  });
+
+  const { data: insurancePool } = useQuery<{ poolSize: string; totalPolicies: number; totalPaid: string; payoutRate: string }>({
+    queryKey: ["/api/hedge/insurance-pool"],
+  });
+
+  const { data: purchases = [] } = useQuery<InsurancePurchase[]>({
+    queryKey: ["/api/hedge/purchases", walletAddr],
+    enabled: !!walletAddr,
+  });
+
+  const { data: aiPredictions = [], isLoading: predsLoading } = useQuery<AiPrediction[]>({
+    queryKey: ["/api/ai/predictions/list"],
+    staleTime: 60_000,
+    refetchInterval: 5 * 60_000,
+  });
+
   const subscribeMutation = useMutation({
     mutationFn: async (data: { walletAddress: string; strategyId: string; amount: number }) => {
       const res = await apiRequest("POST", "/api/strategy/subscribe", data);
@@ -49,6 +89,23 @@ export default function StrategyPage() {
       setSubscribeOpen(false);
       setCapitalAmount("");
       setSelectedStrategy(null);
+    },
+    onError: (err: Error) => {
+      toast({ title: "Error", description: err.message, variant: "destructive" });
+    },
+  });
+
+  const hedgeMutation = useMutation({
+    mutationFn: async (data: { walletAddress: string; amount: number }) => {
+      const res = await apiRequest("POST", "/api/hedge/purchase", data);
+      return res.json();
+    },
+    onSuccess: () => {
+      toast({ title: "Success", description: "Hedge protection purchased" });
+      queryClient.invalidateQueries({ queryKey: ["/api/hedge/positions", walletAddr] });
+      queryClient.invalidateQueries({ queryKey: ["/api/hedge/purchases", walletAddr] });
+      queryClient.invalidateQueries({ queryKey: ["/api/hedge/insurance-pool"] });
+      setHedgeAmount("300");
     },
     onError: (err: Error) => {
       toast({ title: "Error", description: err.message, variant: "destructive" });
@@ -94,102 +151,454 @@ export default function StrategyPage() {
     });
   };
 
+  const handleHedgePurchase = () => {
+    if (!walletAddr) {
+      toast({ title: "Connect Wallet", description: "Please connect your wallet first", variant: "destructive" });
+      return;
+    }
+    if (!hedgeAmount || Number(hedgeAmount) < 100) {
+      toast({ title: "Invalid Amount", description: "Minimum 100 USDT required", variant: "destructive" });
+      return;
+    }
+    hedgeMutation.mutate({ walletAddress: walletAddr, amount: Number(hedgeAmount) });
+  };
+
+  const totalPremium = hedgePositions.reduce((sum, h) => sum + Number(h.amount || 0), 0);
+  const totalPayout = hedgePositions.reduce((sum, h) => sum + Number(h.purchaseAmount || 0), 0);
+  const totalPnl = hedgePositions.reduce((sum, h) => sum + Number(h.currentPnl || 0), 0);
+
   const getStrategyName = (strategyId: string) => {
     const s = strategies.find((st) => st.id === strategyId);
     return s?.name || "Unknown Strategy";
   };
 
   return (
-    <div className="space-y-4 pb-20">
+    <div className="space-y-4 pb-20" data-testid="page-strategy">
       <StrategyHeader />
 
-      <div className="px-4 space-y-4">
-        <div style={{ animation: "fadeSlideIn 0.4s ease-out 0.1s both" }}>
-          <h3 className="text-sm font-bold mb-3" data-testid="text-strategies-list-title">All Strategies</h3>
-          {isLoading ? (
-            <div className="grid grid-cols-2 gap-3">
-              {[1, 2, 3, 4].map((i) => (
-                <Skeleton key={i} className="h-56 rounded-md" />
-              ))}
-            </div>
-          ) : (
-            <div className="grid grid-cols-2 gap-3">
-              {strategies.map((s, i) => (
-                <StrategyCard key={s.id} strategy={s} index={i} onSubscribe={handleSubscribeClick} />
-              ))}
-            </div>
-          )}
+      <div className="px-4">
+        <div className="flex gap-0 bg-card border border-border rounded-md overflow-hidden" data-testid="strategy-tabs">
+          {TABS.map((tab) => (
+            <button
+              key={tab.id}
+              className={`flex-1 py-2.5 text-xs font-bold text-center transition-all ${
+                activeTab === tab.id
+                  ? "bg-primary text-white"
+                  : "text-muted-foreground hover-elevate"
+              }`}
+              onClick={() => setActiveTab(tab.id)}
+              data-testid={`tab-${tab.id}`}
+            >
+              {tab.label}
+            </button>
+          ))}
         </div>
+      </div>
 
-        {walletAddr && subscriptions.length > 0 && (
-          <div style={{ animation: "fadeSlideIn 0.4s ease-out 0.2s both" }}>
-            <h3 className="text-sm font-bold mb-3" data-testid="text-subscriptions-title">My Subscriptions</h3>
-            <div className="space-y-2">
-              {subscriptions.map((sub) => (
-                <Card key={sub.id} className="border-border bg-card" data-testid={`subscription-card-${sub.id}`}>
-                  <CardContent className="p-3">
-                    <div className="flex items-center justify-between gap-2">
-                      <div className="flex-1 min-w-0">
-                        <div className="text-xs font-semibold truncate">{getStrategyName(sub.strategyId)}</div>
-                        <div className="text-[10px] text-muted-foreground mt-0.5">
-                          Capital: {formatCompact(Number(sub.allocatedCapital))}
+      <div className="px-4 space-y-4">
+        {activeTab === "strategies" && (
+          <>
+            <div style={{ animation: "fadeSlideIn 0.4s ease-out 0.1s both" }}>
+              <h3 className="text-sm font-bold mb-3" data-testid="text-strategies-list-title">All Strategies</h3>
+              {isLoading ? (
+                <div className="grid grid-cols-2 gap-3">
+                  {[1, 2, 3, 4].map((i) => (
+                    <Skeleton key={i} className="h-56 rounded-md" />
+                  ))}
+                </div>
+              ) : (
+                <div className="grid grid-cols-2 gap-3">
+                  {strategies.map((s, i) => (
+                    <StrategyCard key={s.id} strategy={s} index={i} onSubscribe={handleSubscribeClick} />
+                  ))}
+                </div>
+              )}
+            </div>
+
+            {walletAddr && subscriptions.length > 0 && (
+              <div style={{ animation: "fadeSlideIn 0.4s ease-out 0.2s both" }}>
+                <h3 className="text-sm font-bold mb-3" data-testid="text-subscriptions-title">My Subscriptions</h3>
+                <div className="space-y-2">
+                  {subscriptions.map((sub) => (
+                    <Card key={sub.id} className="border-border bg-card" data-testid={`subscription-card-${sub.id}`}>
+                      <CardContent className="p-3">
+                        <div className="flex items-center justify-between gap-2">
+                          <div className="flex-1 min-w-0">
+                            <div className="text-xs font-semibold truncate">{getStrategyName(sub.strategyId)}</div>
+                            <div className="text-[10px] text-muted-foreground mt-0.5">
+                              Capital: {formatCompact(Number(sub.allocatedCapital))}
+                            </div>
+                          </div>
+                          <Badge
+                            variant={sub.status === "ACTIVE" ? "default" : "secondary"}
+                            className="text-[9px] no-default-hover-elevate no-default-active-elevate shrink-0"
+                            data-testid={`badge-sub-status-${sub.id}`}
+                          >
+                            {sub.status}
+                          </Badge>
                         </div>
+                      </CardContent>
+                    </Card>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {walletAddr && !profile?.isVip && (
+              <div style={{ animation: "fadeSlideIn 0.4s ease-out 0.3s both" }}>
+                <Card className="border-border bg-card glow-green-sm">
+                  <CardContent className="p-4">
+                    <div className="flex items-center gap-2 mb-3">
+                      <Crown className="h-5 w-5 text-primary" />
+                      <h3 className="text-sm font-bold">Upgrade to VIP</h3>
+                    </div>
+                    <p className="text-xs text-muted-foreground mb-3">
+                      Unlock exclusive strategies and premium features with VIP membership.
+                    </p>
+                    <div className="space-y-2 mb-4">
+                      {["Access VIP-only strategies", "Higher leverage options", "Priority support and insights", "Enhanced referral rewards"].map((t) => (
+                        <div key={t} className="flex items-center gap-2 text-xs text-muted-foreground">
+                          <CheckCircle2 className="h-3 w-3 text-primary shrink-0" />
+                          <span>{t}</span>
+                        </div>
+                      ))}
+                    </div>
+                    <Button
+                      className="w-full"
+                      onClick={() => vipMutation.mutate()}
+                      disabled={vipMutation.isPending}
+                      data-testid="button-upgrade-vip"
+                    >
+                      <Zap className="mr-1 h-4 w-4" />
+                      {vipMutation.isPending ? "Processing..." : "Upgrade to VIP - $99/mo"}
+                    </Button>
+                  </CardContent>
+                </Card>
+              </div>
+            )}
+          </>
+        )}
+
+        {activeTab === "hedge" && (
+          <div className="space-y-4" style={{ animation: "fadeSlideIn 0.3s ease-out" }}>
+            <Card className="border-border bg-card" data-testid="card-my-hedge">
+              <CardContent className="p-4">
+                <div className="flex items-center justify-between gap-2 mb-4 flex-wrap">
+                  <h3 className="text-sm font-bold">My Hedge Protection</h3>
+                  <Button size="icon" variant="ghost" data-testid="button-hedge-info">
+                    <Info className="h-4 w-4" />
+                  </Button>
+                </div>
+
+                <Card className="border-border bg-background mb-3">
+                  <CardContent className="p-3">
+                    <div className="flex items-center justify-between gap-2 flex-wrap">
+                      <div>
+                        <div className="text-[10px] text-muted-foreground">Premium Paid: {formatUSD(totalPremium)} USDT</div>
+                        <div className="text-[10px] text-muted-foreground mt-0.5">(Premium + Payout)</div>
                       </div>
-                      <Badge
-                        variant={sub.status === "ACTIVE" ? "default" : "secondary"}
-                        className="text-[9px] no-default-hover-elevate no-default-active-elevate shrink-0"
-                        data-testid={`badge-sub-status-${sub.id}`}
-                      >
-                        {sub.status}
-                      </Badge>
+                    </div>
+                    <div className="flex items-center justify-between gap-2 mt-2 flex-wrap">
+                      <div className="text-xs font-bold">Payout Balance: {formatUSD(totalPayout)} USDT</div>
+                      <Button size="sm" variant="secondary" data-testid="button-withdraw-payout" disabled={totalPayout <= 0}>
+                        Withdraw
+                      </Button>
                     </div>
                   </CardContent>
                 </Card>
-              ))}
-            </div>
-          </div>
-        )}
 
-        {walletAddr && !profile?.isVip && (
-          <div style={{ animation: "fadeSlideIn 0.4s ease-out 0.3s both" }}>
-            <Card className="border-border bg-card glow-green-sm">
-              <CardContent className="p-4">
-                <div className="flex items-center gap-2 mb-3">
-                  <Crown className="h-5 w-5 text-primary" />
-                  <h3 className="text-sm font-bold">Upgrade to VIP</h3>
+                <div className="grid grid-cols-2 gap-3">
+                  <Card className="border-border bg-background">
+                    <CardContent className="p-3">
+                      <div className="text-[10px] text-muted-foreground mb-1 flex items-center gap-1">
+                        <Shield className="h-3 w-3" /> Current P&L
+                      </div>
+                      <div className={`text-lg font-bold ${totalPnl >= 0 ? "text-emerald-400" : "text-red-400"}`}
+                        style={{ textShadow: totalPnl >= 0 ? "0 0 6px rgba(16,185,129,0.4)" : "0 0 6px rgba(239,68,68,0.4)" }}
+                        data-testid="text-hedge-pnl"
+                      >
+                        {totalPnl.toFixed(2)}%
+                      </div>
+                    </CardContent>
+                  </Card>
+                  <Card className="border-border bg-background">
+                    <CardContent className="p-3">
+                      <div className="text-[10px] text-muted-foreground mb-1 flex items-center gap-1">
+                        <Wallet className="h-3 w-3" /> Purchase Amount
+                      </div>
+                      <div className="text-lg font-bold" data-testid="text-hedge-purchase-total">
+                        {formatUSD(totalPremium)} USDT
+                      </div>
+                    </CardContent>
+                  </Card>
                 </div>
-                <p className="text-xs text-muted-foreground mb-3">
-                  Unlock exclusive strategies and premium features with VIP membership.
-                </p>
-                <div className="space-y-2 mb-4">
-                  <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                    <CheckCircle2 className="h-3 w-3 text-primary shrink-0" />
-                    <span>Access VIP-only strategies</span>
-                  </div>
-                  <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                    <CheckCircle2 className="h-3 w-3 text-primary shrink-0" />
-                    <span>Higher leverage options</span>
-                  </div>
-                  <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                    <CheckCircle2 className="h-3 w-3 text-primary shrink-0" />
-                    <span>Priority support and insights</span>
-                  </div>
-                  <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                    <CheckCircle2 className="h-3 w-3 text-primary shrink-0" />
-                    <span>Enhanced referral rewards</span>
-                  </div>
+              </CardContent>
+            </Card>
+
+            <Card className="border-border bg-card" data-testid="card-purchase-hedge">
+              <CardContent className="p-4">
+                <h3 className="text-sm font-bold mb-3">Purchase Hedge Protection</h3>
+                <div className="flex items-center justify-between gap-2 mb-2 text-xs text-muted-foreground flex-wrap">
+                  <span>Investment Amount (USDT)</span>
+                  <span>Min: 100 USDT</span>
+                </div>
+                <div className="flex gap-2 mb-3">
+                  <Input
+                    type="number"
+                    placeholder="300"
+                    value={hedgeAmount}
+                    onChange={(e) => setHedgeAmount(e.target.value)}
+                    className="flex-1"
+                    data-testid="input-hedge-amount"
+                  />
+                  <span className="flex items-center text-xs text-muted-foreground font-medium px-2">USDT</span>
                 </div>
                 <Button
                   className="w-full"
-                  onClick={() => vipMutation.mutate()}
-                  disabled={vipMutation.isPending}
-                  data-testid="button-upgrade-vip"
+                  onClick={handleHedgePurchase}
+                  disabled={hedgeMutation.isPending}
+                  data-testid="button-confirm-hedge"
                 >
-                  <Zap className="mr-1 h-4 w-4" />
-                  {vipMutation.isPending ? "Processing..." : "Upgrade to VIP - $99/mo"}
+                  {hedgeMutation.isPending ? "Processing..." : "Confirm Purchase"}
                 </Button>
               </CardContent>
             </Card>
+
+            <Card className="border-border bg-card" data-testid="card-insurance-pool">
+              <CardContent className="p-4">
+                <h3 className="text-sm font-bold mb-3">Insurance Pool Overview</h3>
+                <div className="grid grid-cols-2 gap-3">
+                  {[
+                    { label: "Coverage", value: insurancePool?.poolSize || "--", color: "text-emerald-400" },
+                    { label: "Claims", value: insurancePool?.totalPolicies?.toString() || "--", color: "text-emerald-400" },
+                    { label: "Paid Out", value: insurancePool?.totalPaid || "--", color: "text-emerald-400" },
+                    { label: "Payout Rate", value: insurancePool?.payoutRate || "--", color: "text-emerald-400" },
+                  ].map((item) => (
+                    <Card key={item.label} className="border-border bg-background">
+                      <CardContent className="p-3 text-center">
+                        <div className={`text-lg font-bold ${item.color}`}
+                          style={{ textShadow: "0 0 6px rgba(16,185,129,0.3)" }}
+                        >
+                          {item.value}
+                        </div>
+                        <div className="text-[10px] text-muted-foreground">{item.label}</div>
+                      </CardContent>
+                    </Card>
+                  ))}
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card className="border-border bg-card" data-testid="card-hedge-records">
+              <CardContent className="p-4">
+                <div className="flex gap-0 mb-3">
+                  <Badge className="text-[10px] bg-primary text-white no-default-hover-elevate no-default-active-elevate">
+                    Purchase Records
+                  </Badge>
+                  <Badge variant="secondary" className="text-[10px] ml-1 no-default-hover-elevate no-default-active-elevate">
+                    Payout Records
+                  </Badge>
+                </div>
+                <div className="grid grid-cols-4 gap-2 text-[10px] text-muted-foreground font-medium mb-2 px-1">
+                  <span>Amount</span>
+                  <span>Date</span>
+                  <span>Status</span>
+                  <span>Type</span>
+                </div>
+                {purchases.length === 0 ? (
+                  <div className="text-center py-4 text-xs text-muted-foreground" data-testid="text-no-records">
+                    No records yet
+                  </div>
+                ) : (
+                  <div className="space-y-1">
+                    {purchases.slice(0, 10).map((p) => (
+                      <div key={p.id} className="grid grid-cols-4 gap-2 text-[10px] px-1 py-1.5 rounded-md bg-background/30" data-testid={`record-${p.id}`}>
+                        <span className="font-medium">{Number(p.amount).toFixed(2)}</span>
+                        <span className="text-muted-foreground">{p.createdAt ? new Date(p.createdAt).toLocaleDateString() : "--"}</span>
+                        <Badge variant="secondary" className="text-[8px] no-default-hover-elevate no-default-active-elevate w-fit">
+                          {p.status}
+                        </Badge>
+                        <span className="text-muted-foreground">Hedge</span>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+
+            <Card className="border-border bg-card" data-testid="card-exchange-connect">
+              <CardContent className="p-4">
+                <div className="flex flex-wrap gap-2 mb-4">
+                  {EXCHANGES.map((ex) => (
+                    <Badge
+                      key={ex.name}
+                      variant="outline"
+                      className="text-[10px] cursor-pointer"
+                      data-testid={`badge-exchange-${ex.tag}`}
+                    >
+                      {ex.tag}
+                    </Badge>
+                  ))}
+                  <Badge variant="outline" className="text-[10px] cursor-pointer" data-testid="badge-exchange-more">
+                    More
+                  </Badge>
+                </div>
+
+                <div className="grid grid-cols-2 gap-4 mb-3">
+                  <div>
+                    <div className="text-[10px] text-muted-foreground">Position Amount</div>
+                    <div className="text-sm font-bold" data-testid="text-position-amount">0.00</div>
+                  </div>
+                  <div>
+                    <div className="text-[10px] text-muted-foreground">P&L</div>
+                    <div className="text-sm font-bold" data-testid="text-position-pnl">
+                      0.00 <span className="text-emerald-400 text-[10px]">(0.00%)</span>
+                    </div>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card className="border-border bg-card" data-testid="card-total-assets">
+              <CardContent className="p-4">
+                <div className="flex items-center justify-between gap-2 flex-wrap">
+                  <div>
+                    <div className="text-[10px] text-muted-foreground">Total Assets</div>
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <span className="text-xs text-muted-foreground">All</span>
+                      <RefreshCw className="h-3 w-3 text-muted-foreground" />
+                    </div>
+                  </div>
+                </div>
+                <div className="text-2xl font-bold mt-2" data-testid="text-total-assets">
+                  ${formatCompact(totalPremium)}
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+        )}
+
+        {activeTab === "predictions" && (
+          <div className="space-y-3" style={{ animation: "fadeSlideIn 0.3s ease-out" }}>
+            <h3 className="text-sm font-bold" data-testid="text-predictions-title">AI Predictions</h3>
+
+            {predsLoading ? (
+              <div className="space-y-2">
+                {[1, 2, 3].map((i) => (
+                  <Skeleton key={i} className="h-24 w-full rounded-md" />
+                ))}
+              </div>
+            ) : aiPredictions.length > 0 ? (
+              aiPredictions.map((pred) => {
+                const isBullish = pred.prediction === "BULLISH";
+                const isBearish = pred.prediction === "BEARISH";
+                const confidence = Number(pred.confidence || 0);
+                const current = Number(pred.currentPrice || 0);
+                const target = Number(pred.targetPrice || 0);
+                const pctChange = current > 0 ? ((target - current) / current * 100) : 0;
+
+                return (
+                  <Card key={pred.id} className="border-border bg-card" data-testid={`prediction-card-${pred.asset}`}>
+                    <CardContent className="p-3">
+                      <div className="flex items-center justify-between gap-2 flex-wrap">
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <div
+                            className={`h-8 w-8 rounded-full flex items-center justify-center ${
+                              isBullish ? "bg-emerald-500/20" : isBearish ? "bg-red-500/20" : "bg-yellow-500/20"
+                            }`}
+                            style={{
+                              boxShadow: isBullish
+                                ? "0 0 10px rgba(16,185,129,0.3)"
+                                : isBearish
+                                  ? "0 0 10px rgba(239,68,68,0.3)"
+                                  : undefined,
+                            }}
+                          >
+                            {isBullish ? (
+                              <TrendingUp className="h-4 w-4 text-emerald-400" />
+                            ) : isBearish ? (
+                              <TrendingDown className="h-4 w-4 text-red-400" />
+                            ) : (
+                              <Minus className="h-4 w-4 text-yellow-400" />
+                            )}
+                          </div>
+                          <div>
+                            <div className="text-xs font-bold">{pred.asset}/USDT</div>
+                            <div className="text-[10px] text-muted-foreground flex items-center gap-1">
+                              <Clock className="h-2.5 w-2.5" /> {pred.timeframe}
+                            </div>
+                          </div>
+                        </div>
+
+                        <div className="text-right">
+                          <Badge
+                            className={`text-[9px] no-default-hover-elevate no-default-active-elevate ${
+                              isBullish
+                                ? "bg-emerald-500/20 text-emerald-400"
+                                : isBearish
+                                  ? "bg-red-500/20 text-red-400"
+                                  : "bg-yellow-500/20 text-yellow-400"
+                            }`}
+                            style={{
+                              boxShadow: isBullish
+                                ? "0 0 6px rgba(16,185,129,0.25)"
+                                : isBearish
+                                  ? "0 0 6px rgba(239,68,68,0.25)"
+                                  : undefined,
+                            }}
+                          >
+                            {pred.prediction} {confidence}%
+                          </Badge>
+                        </div>
+                      </div>
+
+                      <div className="grid grid-cols-3 gap-2 mt-2">
+                        <div>
+                          <div className="text-[9px] text-muted-foreground">Current</div>
+                          <div className="text-[11px] font-bold">{current > 0 ? formatUSD(current) : "--"}</div>
+                        </div>
+                        <div>
+                          <div className="text-[9px] text-muted-foreground">Target</div>
+                          <div className={`text-[11px] font-bold ${isBullish ? "text-emerald-400" : isBearish ? "text-red-400" : ""}`}>
+                            {target > 0 ? formatUSD(target) : "--"}
+                          </div>
+                        </div>
+                        <div>
+                          <div className="text-[9px] text-muted-foreground">Change</div>
+                          <div className={`text-[11px] font-bold ${pctChange >= 0 ? "text-emerald-400" : "text-red-400"}`}>
+                            {pctChange >= 0 ? "+" : ""}{pctChange.toFixed(2)}%
+                          </div>
+                        </div>
+                      </div>
+
+                      {pred.reasoning && (
+                        <div className="mt-2 bg-background/30 rounded-md p-2 border border-border/20">
+                          <div className="flex items-center gap-1 mb-0.5">
+                            <Brain className="h-2.5 w-2.5 text-primary" />
+                            <span className="text-[9px] text-muted-foreground">AI Analysis</span>
+                          </div>
+                          <p className="text-[10px] text-foreground/70">{pred.reasoning}</p>
+                        </div>
+                      )}
+
+                      <div className="flex items-center justify-between gap-2 mt-2 text-[9px] text-muted-foreground flex-wrap">
+                        <span>Fear & Greed: {pred.fearGreedIndex} ({pred.fearGreedLabel})</span>
+                        {pred.createdAt && (
+                          <span>{new Date(pred.createdAt).toLocaleTimeString()}</span>
+                        )}
+                      </div>
+                    </CardContent>
+                  </Card>
+                );
+              })
+            ) : (
+              <Card className="border-border bg-card">
+                <CardContent className="p-6 text-center">
+                  <Brain className="h-8 w-8 text-muted-foreground mx-auto mb-2" />
+                  <p className="text-xs text-muted-foreground">No predictions available yet. Predictions are generated when you visit the Dashboard.</p>
+                </CardContent>
+              </Card>
+            )}
           </div>
         )}
       </div>

@@ -490,6 +490,91 @@ export async function registerRoutes(
     }
   });
 
+  app.get("/api/hedge/positions/:walletAddress", async (req, res) => {
+    try {
+      const profile = await storage.getProfileByWallet(req.params.walletAddress);
+      if (!profile) return res.json([]);
+      const positions = await storage.getHedgePositions(profile.id);
+      res.json(positions);
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  app.post("/api/hedge/purchase", async (req, res) => {
+    try {
+      const { walletAddress, amount } = req.body;
+      if (!walletAddress || !amount || Number(amount) < 100) {
+        return res.status(400).json({ message: "Minimum 100 USDT required" });
+      }
+
+      let profile = await storage.getProfileByWallet(walletAddress);
+      if (!profile) {
+        profile = await storage.createProfile({ walletAddress });
+      }
+
+      const hedge = await storage.createHedgePosition({
+        userId: profile.id,
+        amount: String(amount),
+        purchaseAmount: String(amount),
+        status: "ACTIVE",
+      });
+
+      await storage.createInsurancePurchase({
+        userId: profile.id,
+        amount: String(amount),
+        status: "ACTIVE",
+      });
+
+      await storage.createTransaction({
+        userId: profile.id,
+        type: "HEDGE_PURCHASE",
+        token: "USDT",
+        amount: String(amount),
+        status: "CONFIRMED",
+      });
+
+      res.json(hedge);
+    } catch (error: any) {
+      console.error("Hedge purchase error:", error);
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  app.get("/api/hedge/insurance-pool", async (_req, res) => {
+    try {
+      const overview = await storage.getInsurancePoolOverview();
+      res.json(overview);
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  app.get("/api/hedge/purchases/:walletAddress", async (req, res) => {
+    try {
+      const profile = await storage.getProfileByWallet(req.params.walletAddress);
+      if (!profile) return res.json([]);
+      const purchases = await storage.getInsurancePurchases(profile.id);
+      res.json(purchases);
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  app.get("/api/ai/predictions/list", async (_req, res) => {
+    try {
+      const assets = ["BTC", "ETH", "SOL", "BNB", "DOGE"];
+      const predictions = [];
+      for (const asset of assets) {
+        const pred = await storage.getLatestPrediction(asset);
+        if (pred) predictions.push(pred);
+      }
+      res.json(predictions);
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
   app.get("/api/referrals/:walletAddress", async (req, res) => {
     try {
       const profile = await storage.getProfileByWallet(req.params.walletAddress);
