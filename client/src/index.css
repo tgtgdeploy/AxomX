@@ -270,3 +270,32 @@
     background-size: 24px 24px;
   }
 }
+
+@keyframes fadeSlideIn {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes pulseGlow {
+  0%, 100% {
+    box-shadow: 0 0 4px hsl(142, 72%, 45%, 0.3);
+  }
+  50% {
+    box-shadow: 0 0 12px hsl(142, 72%, 45%, 0.5);
+  }
+}
+
+@keyframes shimmerSlide {
+  0% {
+    transform: translateX(0);
+  }
+  100% {
+    transform: translateX(-50%);
+  }
+}

@@ -1,5 +1,5 @@
-import { Switch, Route } from "wouter";
-import { queryClient } from "./lib/queryClient";
+import { Switch, Route, Link } from "wouter";
+import { queryClient, apiRequest } from "./lib/queryClient";
 import { QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -8,7 +8,6 @@ import { createWallet, inAppWallet } from "thirdweb/wallets";
 import { useThirdwebClient } from "@/hooks/use-thirdweb";
 import { BottomNav } from "@/components/bottom-nav";
 import { useEffect } from "react";
-import { apiRequest } from "./lib/queryClient";
 
 import Dashboard from "@/pages/dashboard";
 import Trade from "@/pages/trade";
@@ -44,12 +43,12 @@ function Header() {
 
   return (
     <header className="sticky top-0 z-50 flex items-center justify-between px-4 py-2 border-b border-border/50 bg-background/95 backdrop-blur-md">
-      <div className="flex items-center gap-2">
+      <Link href="/" className="flex items-center gap-2 cursor-pointer" data-testid="link-logo-home">
         <div className="h-7 w-7 rounded-md bg-primary/20 flex items-center justify-center glow-green-sm">
-          <span className="text-sm font-bold text-primary">C</span>
+          <span className="text-sm font-bold text-primary">N</span>
         </div>
-        <span className="text-sm font-bold tracking-wide">CoinMax</span>
-      </div>
+        <span className="text-sm font-bold tracking-wider">NEXA</span>
+      </Link>
       {isLoading || !client ? (
         <div className="h-9 w-24 animate-pulse rounded-md bg-muted" />
       ) : (

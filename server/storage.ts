@@ -1,4 +1,4 @@
-import { eq } from "drizzle-orm";
+import { eq, desc, sql, and } from "drizzle-orm";
 import { db } from "./db";
 import {
   profiles,
@@ -7,6 +7,9 @@ import {
   strategySubscriptions,
   predictionMarkets,
   nodeMemberships,
+  transactions,
+  tradeBets,
+  aiPredictions,
   systemConfig,
   type Profile,
   type InsertProfile,
@@ -19,21 +22,51 @@ import {
   type PredictionMarket,
   type InsertPredictionMarket,
   type NodeMembership,
+  type Transaction,
+  type InsertTransaction,
+  type TradeBet,
+  type InsertTradeBet,
+  type AiPrediction,
 } from "@shared/schema";
 
 export interface IStorage {
   getProfileByWallet(walletAddress: string): Promise<Profile | undefined>;
   createProfile(profile: InsertProfile): Promise<Profile>;
-  getProfile(id: string): Promise<Profile | undefined>;
+  updateProfile(id: string, data: Partial<Profile>): Promise<Profile>;
+  getProfileById(id: string): Promise<Profile | undefined>;
+  getReferrals(userId: string): Promise<Profile[]>;
+  getProfileByRefCode(refCode: string): Promise<Profile | undefined>;
+
   getVaultPositions(userId: string): Promise<VaultPosition[]>;
   createVaultPosition(position: InsertVaultPosition): Promise<VaultPosition>;
+  updateVaultPosition(id: string, data: Partial<VaultPosition>): Promise<VaultPosition>;
+
   getStrategies(): Promise<Strategy[]>;
   createStrategy(strategy: InsertStrategy): Promise<Strategy>;
+
   getStrategySubscriptions(userId: string): Promise<StrategySubscription[]>;
   createStrategySubscription(sub: InsertStrategySubscription): Promise<StrategySubscription>;
+
   getPredictionMarkets(): Promise<PredictionMarket[]>;
   createPredictionMarket(market: InsertPredictionMarket): Promise<PredictionMarket>;
+
   getNodeMembership(userId: string): Promise<NodeMembership | undefined>;
+  createNodeMembership(userId: string, nodeType: string, price: string): Promise<NodeMembership>;
+
+  getTransactions(userId: string, type?: string): Promise<Transaction[]>;
+  createTransaction(tx: InsertTransaction): Promise<Transaction>;
+  updateTransaction(id: string, data: Partial<Transaction>): Promise<Transaction>;
+
+  getTradeBets(userId: string): Promise<TradeBet[]>;
+  createTradeBet(bet: InsertTradeBet): Promise<TradeBet>;
+  updateTradeBet(id: string, data: Partial<TradeBet>): Promise<TradeBet>;
+  getTradeStats(userId: string): Promise<{ total: number; wins: number; losses: number; totalStaked: string }>;
+
+  getLatestPrediction(asset: string): Promise<AiPrediction | undefined>;
+  savePrediction(data: Partial<AiPrediction>): Promise<AiPrediction>;
+
+  getVaultOverview(): Promise<{ tvl: string; holders: number; totalPositions: number }>;
+  getStrategyOverview(): Promise<{ totalAum: string; avgWinRate: string; avgReturn: string }>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -53,18 +86,37 @@ export class DatabaseStorage implements IStorage {
     return created;
   }
 
-  async getProfile(id: string): Promise<Profile | undefined> {
+  async updateProfile(id: string, data: Partial<Profile>): Promise<Profile> {
+    const [updated] = await db.update(profiles).set(data).where(eq(profiles.id, id)).returning();
+    return updated;
+  }
+
+  async getProfileById(id: string): Promise<Profile | undefined> {
     const [profile] = await db.select().from(profiles).where(eq(profiles.id, id));
     return profile;
   }
 
+  async getReferrals(userId: string): Promise<Profile[]> {
+    return db.select().from(profiles).where(eq(profiles.referrerId, userId));
+  }
+
+  async getProfileByRefCode(refCode: string): Promise<Profile | undefined> {
+    const [profile] = await db.select().from(profiles).where(eq(profiles.refCode, refCode));
+    return profile;
+  }
+
   async getVaultPositions(userId: string): Promise<VaultPosition[]> {
-    return db.select().from(vaultPositions).where(eq(vaultPositions.userId, userId));
+    return db.select().from(vaultPositions).where(eq(vaultPositions.userId, userId)).orderBy(desc(vaultPositions.startDate));
   }
 
   async createVaultPosition(position: InsertVaultPosition): Promise<VaultPosition> {
     const [created] = await db.insert(vaultPositions).values(position).returning();
     return created;
+  }
+
+  async updateVaultPosition(id: string, data: Partial<VaultPosition>): Promise<VaultPosition> {
+    const [updated] = await db.update(vaultPositions).set(data).where(eq(vaultPositions.id, id)).returning();
+    return updated;
   }
 
   async getStrategies(): Promise<Strategy[]> {
@@ -100,6 +152,96 @@ export class DatabaseStorage implements IStorage {
       .from(nodeMemberships)
       .where(eq(nodeMemberships.userId, userId));
     return membership;
+  }
+
+  async createNodeMembership(userId: string, nodeType: string, price: string): Promise<NodeMembership> {
+    const [created] = await db
+      .insert(nodeMemberships)
+      .values({ userId, nodeType, price })
+      .returning();
+    return created;
+  }
+
+  async getTransactions(userId: string, type?: string): Promise<Transaction[]> {
+    if (type) {
+      return db.select().from(transactions)
+        .where(and(eq(transactions.userId, userId), eq(transactions.type, type)))
+        .orderBy(desc(transactions.createdAt));
+    }
+    return db.select().from(transactions).where(eq(transactions.userId, userId)).orderBy(desc(transactions.createdAt));
+  }
+
+  async createTransaction(tx: InsertTransaction): Promise<Transaction> {
+    const [created] = await db.insert(transactions).values(tx).returning();
+    return created;
+  }
+
+  async updateTransaction(id: string, data: Partial<Transaction>): Promise<Transaction> {
+    const [updated] = await db.update(transactions).set(data).where(eq(transactions.id, id)).returning();
+    return updated;
+  }
+
+  async getTradeBets(userId: string): Promise<TradeBet[]> {
+    return db.select().from(tradeBets).where(eq(tradeBets.userId, userId)).orderBy(desc(tradeBets.createdAt));
+  }
+
+  async createTradeBet(bet: InsertTradeBet): Promise<TradeBet> {
+    const [created] = await db.insert(tradeBets).values(bet).returning();
+    return created;
+  }
+
+  async updateTradeBet(id: string, data: Partial<TradeBet>): Promise<TradeBet> {
+    const [updated] = await db.update(tradeBets).set(data).where(eq(tradeBets.id, id)).returning();
+    return updated;
+  }
+
+  async getTradeStats(userId: string): Promise<{ total: number; wins: number; losses: number; totalStaked: string }> {
+    const bets = await db.select().from(tradeBets).where(eq(tradeBets.userId, userId));
+    const total = bets.length;
+    const wins = bets.filter(b => b.result === "WIN").length;
+    const losses = bets.filter(b => b.result === "LOSS").length;
+    const totalStaked = bets.reduce((sum, b) => sum + Number(b.amount || 0), 0).toFixed(2);
+    return { total, wins, losses, totalStaked };
+  }
+
+  async getLatestPrediction(asset: string): Promise<AiPrediction | undefined> {
+    const [pred] = await db.select().from(aiPredictions)
+      .where(eq(aiPredictions.asset, asset))
+      .orderBy(desc(aiPredictions.createdAt))
+      .limit(1);
+    return pred;
+  }
+
+  async savePrediction(data: Partial<AiPrediction>): Promise<AiPrediction> {
+    const [created] = await db.insert(aiPredictions).values(data as any).returning();
+    return created;
+  }
+
+  async getVaultOverview(): Promise<{ tvl: string; holders: number; totalPositions: number }> {
+    const positions = await db.select().from(vaultPositions).where(eq(vaultPositions.status, "ACTIVE"));
+    const tvl = positions.reduce((sum, p) => sum + Number(p.principal || 0), 0);
+    const holderIds = new Set(positions.map(p => p.userId));
+    return {
+      tvl: tvl.toFixed(2),
+      holders: holderIds.size,
+      totalPositions: positions.length,
+    };
+  }
+
+  async getStrategyOverview(): Promise<{ totalAum: string; avgWinRate: string; avgReturn: string }> {
+    const strats = await db.select().from(strategies).where(eq(strategies.status, "ACTIVE"));
+    const totalAum = strats.reduce((sum, s) => sum + Number(s.totalAum || 0), 0);
+    const avgWinRate = strats.length > 0
+      ? (strats.reduce((sum, s) => sum + Number(s.winRate || 0), 0) / strats.length)
+      : 0;
+    const avgReturn = strats.length > 0
+      ? (strats.reduce((sum, s) => sum + Number(s.monthlyReturn || 0), 0) / strats.length)
+      : 0;
+    return {
+      totalAum: totalAum.toFixed(2),
+      avgWinRate: avgWinRate.toFixed(2),
+      avgReturn: avgReturn.toFixed(2),
+    };
   }
 }
 

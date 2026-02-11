@@ -20,6 +20,7 @@ export async function seedDatabase() {
         totalAum: "92140.83",
         status: "ACTIVE",
         isHot: false,
+        isVipOnly: true,
       },
       {
         name: "Multi Currency Strategy, High-Risk",
@@ -30,6 +31,7 @@ export async function seedDatabase() {
         totalAum: "156200.00",
         status: "ACTIVE",
         isHot: true,
+        isVipOnly: false,
       },
       {
         name: "VIP PRO Exclusive AI Trading Model",
@@ -40,6 +42,7 @@ export async function seedDatabase() {
         totalAum: "450000.00",
         status: "ACTIVE",
         isHot: false,
+        isVipOnly: true,
       },
       {
         name: "GPT-5 Quantitative Engine",
@@ -50,6 +53,7 @@ export async function seedDatabase() {
         totalAum: "280000.00",
         status: "ACTIVE",
         isHot: false,
+        isVipOnly: false,
       },
       {
         name: "Crypto Alpha Mixed Index",
@@ -60,6 +64,7 @@ export async function seedDatabase() {
         totalAum: "320000.00",
         status: "ACTIVE",
         isHot: false,
+        isVipOnly: true,
       },
       {
         name: "Cortex Alpha Market Intelligence",
@@ -70,6 +75,7 @@ export async function seedDatabase() {
         totalAum: "198500.00",
         status: "ACTIVE",
         isHot: false,
+        isVipOnly: false,
       },
     ]);
 
@@ -121,20 +127,20 @@ export async function seedDatabase() {
         status: "OPEN",
       },
       {
-        asset: "ETH",
+        asset: "SOL",
         timeframe: "1H",
-        targetPrice1: "1927",
-        targetPrice2: "1935",
-        yesOdds: "10.20",
-        noOdds: "89.80",
+        targetPrice1: "142",
+        targetPrice2: "145",
+        yesOdds: "42.30",
+        noOdds: "57.70",
         expiresAt: hour1,
         status: "OPEN",
       },
       {
-        asset: "ETH",
+        asset: "BNB",
         timeframe: "4H",
-        targetPrice1: "1960",
-        targetPrice2: "1971",
+        targetPrice1: "605",
+        targetPrice2: "612",
         yesOdds: "53.90",
         noOdds: "46.10",
         expiresAt: hour4,
