@@ -15,7 +15,7 @@ interface ExchangeAggregatedData {
 }
 
 const depthCacheMap = new Map<string, { data: ExchangeAggregatedData; timestamp: number }>();
-const CACHE_TTL = 60_000;
+const CACHE_TTL = 50_000;
 
 interface TickerData {
   priceChangePercent: number;
@@ -117,7 +117,7 @@ async function fetchBinanceOrderBook(symbol: string = "BTCUSDT"): Promise<{ bidT
 let globalFGICache: { value: number; classification: string; ts: number } | null = null;
 
 async function fetchAlternativeFearGreed(): Promise<{ value: number; classification: string }> {
-  if (globalFGICache && Date.now() - globalFGICache.ts < 5 * 60_000) {
+  if (globalFGICache && Date.now() - globalFGICache.ts < 50_000) {
     return { value: globalFGICache.value, classification: globalFGICache.classification };
   }
   try {

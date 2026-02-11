@@ -67,14 +67,14 @@ const predictionCache: Map<string, { data: any; time: number }> = new Map();
 export async function generatePrediction(asset: string, timeframe: string = "1H") {
   const cacheKey = `${asset}-${timeframe}`;
   const cached = predictionCache.get(cacheKey);
-  if (cached && Date.now() - cached.time < 5 * 60 * 1000) {
+  if (cached && Date.now() - cached.time < 55 * 1000) {
     return cached.data;
   }
 
   const dbCached = await storage.getLatestPrediction(asset);
   if (dbCached && dbCached.createdAt && dbCached.timeframe === timeframe) {
     const age = Date.now() - new Date(dbCached.createdAt).getTime();
-    if (age < 10 * 60 * 1000) {
+    if (age < 55 * 1000) {
       predictionCache.set(cacheKey, { data: dbCached, time: Date.now() });
       return dbCached;
     }

@@ -30,7 +30,7 @@ const newsCache: { data: NewsPrediction[] | null; timestamp: number } = {
   data: null,
   timestamp: 0,
 };
-const NEWS_CACHE_TTL = 10 * 60 * 1000;
+const NEWS_CACHE_TTL = 55 * 1000;
 
 async function fetchCryptoNews(): Promise<NewsArticle[]> {
   const apiKey = process.env.NEWS_API_KEY;

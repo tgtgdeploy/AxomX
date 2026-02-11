@@ -85,6 +85,9 @@ export interface IStorage {
 
   getPredictionBets(userId: string): Promise<PredictionBet[]>;
   createPredictionBet(data: InsertPredictionBet): Promise<PredictionBet>;
+
+  updateStrategy(id: string, data: Partial<Strategy>): Promise<Strategy>;
+  cleanOldPredictions(maxAgeMs: number): Promise<number>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -300,6 +303,19 @@ export class DatabaseStorage implements IStorage {
   async createPredictionBet(data: InsertPredictionBet): Promise<PredictionBet> {
     const [created] = await db.insert(predictionBets).values(data).returning();
     return created;
+  }
+
+  async updateStrategy(id: string, data: Partial<Strategy>): Promise<Strategy> {
+    const [updated] = await db.update(strategies).set(data).where(eq(strategies.id, id)).returning();
+    return updated;
+  }
+
+  async cleanOldPredictions(maxAgeMs: number): Promise<number> {
+    const cutoff = new Date(Date.now() - maxAgeMs);
+    const result = await db.delete(aiPredictions).where(
+      sql`${aiPredictions.createdAt} < ${cutoff}`
+    );
+    return result.rowCount ?? 0;
   }
 }
 

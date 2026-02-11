@@ -268,7 +268,7 @@ export async function registerRoutes(
   });
 
   const forecastCache = new Map<string, { data: any; timestamp: number }>();
-  const FORECAST_CACHE_DURATION = 3 * 60 * 1000;
+  const FORECAST_CACHE_DURATION = 55 * 1000;
 
   app.get("/api/ai/forecast/:asset", async (req, res) => {
     try {
@@ -471,7 +471,7 @@ export async function registerRoutes(
   });
 
   const calendarCacheMap = new Map<string, { data: any; timestamp: number }>();
-  const CALENDAR_CACHE_DURATION = 10 * 60 * 1000;
+  const CALENDAR_CACHE_DURATION = 55 * 1000;
 
   async function getBinancePrice(symbol: string): Promise<number> {
     try {
@@ -562,7 +562,7 @@ export async function registerRoutes(
   });
 
   const fgiCacheMap = new Map<string, { data: any; timestamp: number }>();
-  const FGI_CACHE_DURATION = 10 * 60 * 1000;
+  const FGI_CACHE_DURATION = 55 * 1000;
 
   function getFgiLabel(v: number): string {
     if (v <= 25) return "Extreme Fear";
