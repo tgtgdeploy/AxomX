@@ -45,7 +45,6 @@ export default function StrategyPage() {
   const [capitalAmount, setCapitalAmount] = useState("");
   const [hedgeAmount, setHedgeAmount] = useState("300");
   const [investmentOpen, setInvestmentOpen] = useState(false);
-  const [investmentStrategy, setInvestmentStrategy] = useState<Strategy | null>(null);
   const [investmentExchange, setInvestmentExchange] = useState("Aster");
   const [calendarMonth, setCalendarMonth] = useState(new Date());
   const [copyFilterType, setCopyFilterType] = useState("all");
@@ -173,8 +172,7 @@ export default function StrategyPage() {
   const totalPayout = hedgePositions.reduce((sum, h) => sum + Number(h.purchaseAmount || 0), 0);
   const totalPnl = hedgePositions.reduce((sum, h) => sum + Number(h.currentPnl || 0), 0);
 
-  const handleInvestmentClick = (strategy: Strategy) => {
-    setInvestmentStrategy(strategy);
+  const handleInvestmentClick = () => {
     setInvestmentOpen(true);
   };
 
@@ -202,7 +200,17 @@ export default function StrategyPage() {
     <div className="space-y-4 pb-20" data-testid="page-strategy">
       <StrategyHeader />
 
-      <div className="px-4">
+      <div className="px-4 space-y-3">
+        <Button
+          variant="outline"
+          className="w-full text-xs"
+          onClick={handleInvestmentClick}
+          data-testid="button-investment-panel"
+        >
+          <Wallet className="h-4 w-4 mr-2" />
+          Investment
+        </Button>
+
         <div className="flex gap-0 bg-card border border-border rounded-md overflow-hidden" data-testid="strategy-tabs">
           {TABS.map((tab) => (
             <button
@@ -235,7 +243,7 @@ export default function StrategyPage() {
               ) : (
                 <div className="grid grid-cols-2 gap-3">
                   {strategies.map((s, i) => (
-                    <StrategyCard key={s.id} strategy={s} index={i} onSubscribe={handleSubscribeClick} onInvestment={handleInvestmentClick} />
+                    <StrategyCard key={s.id} strategy={s} index={i} onSubscribe={handleSubscribeClick} />
                   ))}
                 </div>
               )}
@@ -633,7 +641,7 @@ export default function StrategyPage() {
         <DialogContent className="bg-card border-border max-w-md max-h-[85vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle className="text-sm font-bold" data-testid="text-investment-dialog-title">
-              {investmentStrategy?.name || "Investment"}
+              Investment
             </DialogTitle>
             <DialogDescription className="text-xs text-muted-foreground">
               Manage API connections, view P&L, and track copy trading performance.
