@@ -152,17 +152,17 @@ function PriceCalendar({ data }: { data: CalendarData | undefined }) {
 
           if (hasData) {
             if (change > 3) {
-              bgClass = "bg-cyan-600/60";
-              textColor = "text-cyan-200";
+              bgClass = "bg-emerald-500/50";
+              textColor = "text-emerald-300";
             } else if (change > 0) {
-              bgClass = "bg-cyan-600/30";
-              textColor = "text-cyan-300";
+              bgClass = "bg-emerald-500/25";
+              textColor = "text-emerald-400";
             } else if (change > -3) {
-              bgClass = "bg-red-500/30";
-              textColor = "text-red-300";
+              bgClass = "bg-red-500/25";
+              textColor = "text-red-400";
             } else {
-              bgClass = "bg-red-500/60";
-              textColor = "text-red-200";
+              bgClass = "bg-red-500/50";
+              textColor = "text-red-300";
             }
           }
 
@@ -247,19 +247,30 @@ export default function MarketPage() {
         ) : fgHistory ? (
           <Card className="border-border bg-card">
             <CardContent className="p-4">
-              <div className="space-y-2 mb-2">
+              <div className="space-y-2.5 mb-2">
                 {[
-                  { label: "Extreme Fear", value: fgHistory.buckets.extremeFear, color: "text-red-400" },
-                  { label: "Fear", value: fgHistory.buckets.fear, color: "text-orange-400" },
-                  { label: "Neutral", value: fgHistory.buckets.neutral, color: "text-yellow-400" },
-                  { label: "Greed", value: fgHistory.buckets.greed, color: "text-lime-400" },
-                  { label: "Extreme Greed", value: fgHistory.buckets.extremeGreed, color: "text-primary" },
-                ].map((item) => (
-                  <div key={item.label} className="flex items-center justify-between gap-2 text-xs">
-                    <span className={item.color}>{item.label}</span>
-                    <span className="text-muted-foreground">{item.value} days</span>
-                  </div>
-                ))}
+                  { label: "Extreme Fear", value: fgHistory.buckets.extremeFear, color: "text-red-400", barColor: "bg-red-500", glow: "rgba(239,68,68,0.4)" },
+                  { label: "Fear", value: fgHistory.buckets.fear, color: "text-orange-400", barColor: "bg-orange-500", glow: "rgba(249,115,22,0.4)" },
+                  { label: "Neutral", value: fgHistory.buckets.neutral, color: "text-yellow-400", barColor: "bg-yellow-500", glow: "rgba(234,179,8,0.3)" },
+                  { label: "Greed", value: fgHistory.buckets.greed, color: "text-lime-400", barColor: "bg-lime-500", glow: "rgba(132,204,22,0.4)" },
+                  { label: "Extreme Greed", value: fgHistory.buckets.extremeGreed, color: "text-emerald-400", barColor: "bg-emerald-500", glow: "rgba(16,185,129,0.4)" },
+                ].map((item) => {
+                  const pct = fgHistory.totalDays > 0 ? (item.value / fgHistory.totalDays) * 100 : 0;
+                  return (
+                    <div key={item.label} className="space-y-0.5">
+                      <div className="flex items-center justify-between gap-2 text-xs">
+                        <span className={`font-medium ${item.color}`}>{item.label}</span>
+                        <span className="text-muted-foreground tabular-nums">{item.value} days ({pct.toFixed(0)}%)</span>
+                      </div>
+                      <div className="h-1.5 rounded-full bg-muted/30 overflow-hidden">
+                        <div
+                          className={`h-full rounded-full ${item.barColor} transition-all duration-700`}
+                          style={{ width: `${pct}%`, boxShadow: `0 0 6px ${item.glow}` }}
+                        />
+                      </div>
+                    </div>
+                  );
+                })}
               </div>
 
               <FearGreedGauge
@@ -283,14 +294,24 @@ export default function MarketPage() {
           <div className="space-y-2">
             {sentiment.map((coin) => {
               const isPositive = coin.change24h >= 0;
+              const is7dPositive = coin.change7d >= 0;
               return (
                 <Card key={coin.id} className="border-border bg-card" data-testid={`sentiment-card-${coin.symbol}`}>
                   <CardContent className="p-3">
                     <div className="flex items-center justify-between gap-2 flex-wrap">
                       <div className="flex items-center gap-2 min-w-0 flex-wrap">
-                        <img src={coin.image} alt={coin.name} className="h-6 w-6 rounded-full shrink-0" />
+                        <div
+                          className="relative h-8 w-8 rounded-full shrink-0 flex items-center justify-center"
+                          style={{
+                            boxShadow: isPositive
+                              ? "0 0 10px rgba(16,185,129,0.3)"
+                              : "0 0 10px rgba(239,68,68,0.3)",
+                          }}
+                        >
+                          <img src={coin.image} alt={coin.name} className="h-8 w-8 rounded-full" />
+                        </div>
                         <div>
-                          <div className="text-xs font-bold">{coin.symbol}</div>
+                          <div className="text-xs font-bold">{coin.symbol.toUpperCase()}</div>
                           <div className="text-[10px] text-muted-foreground">{coin.name}</div>
                         </div>
                       </div>
@@ -298,20 +319,66 @@ export default function MarketPage() {
                         <div className="text-xs font-bold" data-testid={`text-price-${coin.symbol}`}>
                           {formatUSD(coin.price)}
                         </div>
-                        <Badge
-                          className={`text-[9px] no-default-hover-elevate no-default-active-elevate ${
-                            isPositive ? "bg-primary/15 text-neon-value" : "bg-red-500/15 text-red-400"
-                          }`}
-                        >
-                          {isPositive ? <TrendingUp className="mr-0.5 h-2.5 w-2.5" /> : <TrendingDown className="mr-0.5 h-2.5 w-2.5" />}
-                          {isPositive ? "+" : ""}{coin.change24h.toFixed(2)}%
-                        </Badge>
+                        <div className="flex items-center gap-1.5 justify-end mt-0.5 flex-wrap">
+                          <Badge
+                            className={`text-[9px] no-default-hover-elevate no-default-active-elevate ${
+                              isPositive
+                                ? "bg-emerald-500/20 text-emerald-400 border-emerald-500/30"
+                                : "bg-red-500/20 text-red-400 border-red-500/30"
+                            }`}
+                            style={{
+                              boxShadow: isPositive
+                                ? "0 0 6px rgba(16,185,129,0.25)"
+                                : "0 0 6px rgba(239,68,68,0.25)",
+                            }}
+                          >
+                            {isPositive ? <TrendingUp className="mr-0.5 h-2.5 w-2.5" /> : <TrendingDown className="mr-0.5 h-2.5 w-2.5" />}
+                            {isPositive ? "+" : ""}{coin.change24h.toFixed(2)}%
+                          </Badge>
+                          <span className={`text-[9px] font-medium ${is7dPositive ? "text-emerald-400" : "text-red-400"}`}>
+                            7d: {is7dPositive ? "+" : ""}{coin.change7d.toFixed(1)}%
+                          </span>
+                        </div>
                       </div>
                     </div>
-                    <div className="flex items-center justify-between gap-2 mt-2 text-[10px] text-muted-foreground flex-wrap">
-                      <span>Vol: {formatCompact(coin.volume)}</span>
-                      <span className={coin.netFlow >= 0 ? "text-neon-value" : "text-red-400"}>
-                        Net Flow: {coin.netFlow >= 0 ? "+" : ""}{formatCompact(Math.abs(coin.netFlow))}
+
+                    <div className="mt-2 h-1.5 rounded-full overflow-hidden bg-muted/30">
+                      {(() => {
+                        const total = coin.volume;
+                        const flowRatio = total > 0 ? Math.max(10, Math.min(90, 50 + (coin.netFlow / total) * 100)) : 50;
+                        return (
+                          <div className="flex h-full">
+                            <div
+                              className="bg-emerald-500 transition-all duration-700"
+                              style={{
+                                width: `${flowRatio}%`,
+                                boxShadow: "0 0 6px rgba(16,185,129,0.4)",
+                              }}
+                            />
+                            <div
+                              className="bg-red-500 transition-all duration-700"
+                              style={{
+                                width: `${100 - flowRatio}%`,
+                                boxShadow: "0 0 6px rgba(239,68,68,0.4)",
+                              }}
+                            />
+                          </div>
+                        );
+                      })()}
+                    </div>
+
+                    <div className="flex items-center justify-between gap-2 mt-1.5 text-[10px] text-muted-foreground flex-wrap">
+                      <span>Vol: <span className="font-medium text-foreground/70">{formatCompact(coin.volume)}</span></span>
+                      <span>MCap: <span className="font-medium text-foreground/70">{formatCompact(coin.marketCap)}</span></span>
+                      <span
+                        className={`font-bold ${coin.netFlow >= 0 ? "text-emerald-400" : "text-red-400"}`}
+                        style={{
+                          textShadow: coin.netFlow >= 0
+                            ? "0 0 6px rgba(16,185,129,0.4)"
+                            : "0 0 6px rgba(239,68,68,0.4)",
+                        }}
+                      >
+                        Net: {coin.netFlow >= 0 ? "+" : ""}{formatCompact(Math.abs(coin.netFlow))}
                       </span>
                     </div>
                   </CardContent>
