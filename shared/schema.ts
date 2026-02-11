@@ -163,6 +163,32 @@ export const aiPredictions = pgTable("ai_predictions", {
   createdAt: timestamp("created_at").defaultNow(),
 });
 
+export const hedgePositions = pgTable("hedge_positions", {
+  id: varchar("id")
+    .primaryKey()
+    .default(sql`gen_random_uuid()`),
+  userId: varchar("user_id")
+    .notNull()
+    .references(() => profiles.id),
+  amount: numeric("amount", { precision: 18, scale: 6 }).notNull(),
+  currentPnl: numeric("current_pnl", { precision: 10, scale: 4 }).default("0"),
+  purchaseAmount: numeric("purchase_amount", { precision: 18, scale: 6 }).default("0"),
+  status: text("status").notNull().default("ACTIVE"),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+export const insurancePurchases = pgTable("insurance_purchases", {
+  id: varchar("id")
+    .primaryKey()
+    .default(sql`gen_random_uuid()`),
+  userId: varchar("user_id")
+    .notNull()
+    .references(() => profiles.id),
+  amount: numeric("amount", { precision: 18, scale: 6 }).notNull(),
+  status: text("status").notNull().default("ACTIVE"),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
 export const systemConfig = pgTable("system_config", {
   key: text("key").primaryKey(),
   value: text("value").notNull(),
@@ -195,6 +221,16 @@ export const insertPredictionMarketSchema = createInsertSchema(predictionMarkets
   createdAt: true,
 });
 
+export const insertHedgePositionSchema = createInsertSchema(hedgePositions).omit({
+  id: true,
+  createdAt: true,
+});
+
+export const insertInsurancePurchaseSchema = createInsertSchema(insurancePurchases).omit({
+  id: true,
+  createdAt: true,
+});
+
 export const insertTransactionSchema = createInsertSchema(transactions).omit({
   id: true,
   createdAt: true,
@@ -222,6 +258,10 @@ export type InsertTransaction = z.infer<typeof insertTransactionSchema>;
 export type TradeBet = typeof tradeBets.$inferSelect;
 export type InsertTradeBet = z.infer<typeof insertTradeBetSchema>;
 export type AiPrediction = typeof aiPredictions.$inferSelect;
+export type HedgePosition = typeof hedgePositions.$inferSelect;
+export type InsertHedgePosition = z.infer<typeof insertHedgePositionSchema>;
+export type InsurancePurchase = typeof insurancePurchases.$inferSelect;
+export type InsertInsurancePurchase = z.infer<typeof insertInsurancePurchaseSchema>;
 export type SystemConfig = typeof systemConfig.$inferSelect;
 
 export { conversations, messages } from "./models/chat";

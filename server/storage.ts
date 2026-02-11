@@ -10,6 +10,8 @@ import {
   transactions,
   tradeBets,
   aiPredictions,
+  hedgePositions,
+  insurancePurchases,
   systemConfig,
   type Profile,
   type InsertProfile,
@@ -27,6 +29,10 @@ import {
   type TradeBet,
   type InsertTradeBet,
   type AiPrediction,
+  type HedgePosition,
+  type InsertHedgePosition,
+  type InsurancePurchase,
+  type InsertInsurancePurchase,
 } from "@shared/schema";
 
 export interface IStorage {
@@ -67,6 +73,12 @@ export interface IStorage {
 
   getVaultOverview(): Promise<{ tvl: string; holders: number; totalPositions: number }>;
   getStrategyOverview(): Promise<{ totalAum: string; avgWinRate: string; avgReturn: string }>;
+
+  getHedgePositions(userId: string): Promise<HedgePosition[]>;
+  createHedgePosition(data: InsertHedgePosition): Promise<HedgePosition>;
+  getInsurancePurchases(userId: string): Promise<InsurancePurchase[]>;
+  createInsurancePurchase(data: InsertInsurancePurchase): Promise<InsurancePurchase>;
+  getInsurancePoolOverview(): Promise<{ poolSize: string; totalPolicies: number; totalPaid: string; payoutRate: string }>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -241,6 +253,37 @@ export class DatabaseStorage implements IStorage {
       totalAum: totalAum.toFixed(2),
       avgWinRate: avgWinRate.toFixed(2),
       avgReturn: avgReturn.toFixed(2),
+    };
+  }
+  async getHedgePositions(userId: string): Promise<HedgePosition[]> {
+    return db.select().from(hedgePositions).where(eq(hedgePositions.userId, userId)).orderBy(desc(hedgePositions.createdAt));
+  }
+
+  async createHedgePosition(data: InsertHedgePosition): Promise<HedgePosition> {
+    const [created] = await db.insert(hedgePositions).values(data).returning();
+    return created;
+  }
+
+  async getInsurancePurchases(userId: string): Promise<InsurancePurchase[]> {
+    return db.select().from(insurancePurchases).where(eq(insurancePurchases.userId, userId)).orderBy(desc(insurancePurchases.createdAt));
+  }
+
+  async createInsurancePurchase(data: InsertInsurancePurchase): Promise<InsurancePurchase> {
+    const [created] = await db.insert(insurancePurchases).values(data).returning();
+    return created;
+  }
+
+  async getInsurancePoolOverview(): Promise<{ poolSize: string; totalPolicies: number; totalPaid: string; payoutRate: string }> {
+    const allPurchases = await db.select().from(insurancePurchases);
+    const poolSize = allPurchases.reduce((sum, p) => sum + Number(p.amount || 0), 0);
+    const totalPolicies = allPurchases.length;
+    const paidOut = allPurchases.filter(p => p.status === "PAID").reduce((sum, p) => sum + Number(p.amount || 0), 0);
+    const payoutRate = totalPolicies > 0 ? (allPurchases.filter(p => p.status === "PAID").length / totalPolicies * 100) : 0;
+    return {
+      poolSize: poolSize.toFixed(2),
+      totalPolicies,
+      totalPaid: paidOut.toFixed(2),
+      payoutRate: payoutRate.toFixed(2),
     };
   }
 }
