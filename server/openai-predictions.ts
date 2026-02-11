@@ -25,11 +25,22 @@ async function fetchFearGreedIndex(): Promise<FearGreedData> {
 }
 
 async function fetchCurrentPrice(asset: string): Promise<number> {
+  const binanceSymbol = `${asset}USDT`;
+  try {
+    const res = await fetch(`https://api.binance.us/api/v3/ticker/price?symbol=${binanceSymbol}`);
+    if (res.ok) {
+      const data = await res.json();
+      const price = parseFloat(data.price);
+      if (price > 0) return price;
+    }
+  } catch {}
+
   const ids: Record<string, string> = {
     BTC: "bitcoin",
     ETH: "ethereum",
     SOL: "solana",
     BNB: "binancecoin",
+    DOGE: "dogecoin",
   };
   try {
     const id = ids[asset] || "bitcoin";
@@ -41,17 +52,40 @@ async function fetchCurrentPrice(asset: string): Promise<number> {
   }
 }
 
-export async function generatePrediction(asset: string) {
-  const cached = await storage.getLatestPrediction(asset);
-  if (cached && cached.createdAt) {
-    const age = Date.now() - new Date(cached.createdAt).getTime();
-    if (age < 10 * 60 * 1000) return cached;
+const TIMEFRAME_LABELS: Record<string, string> = {
+  "5M": "5-minute",
+  "15M": "15-minute",
+  "30M": "30-minute",
+  "1H": "1-hour",
+  "4H": "4-hour",
+  "1D": "1-day",
+  "1W": "1-week",
+};
+
+const predictionCache: Map<string, { data: any; time: number }> = new Map();
+
+export async function generatePrediction(asset: string, timeframe: string = "1H") {
+  const cacheKey = `${asset}-${timeframe}`;
+  const cached = predictionCache.get(cacheKey);
+  if (cached && Date.now() - cached.time < 5 * 60 * 1000) {
+    return cached.data;
+  }
+
+  const dbCached = await storage.getLatestPrediction(asset);
+  if (dbCached && dbCached.createdAt && dbCached.timeframe === timeframe) {
+    const age = Date.now() - new Date(dbCached.createdAt).getTime();
+    if (age < 10 * 60 * 1000) {
+      predictionCache.set(cacheKey, { data: dbCached, time: Date.now() });
+      return dbCached;
+    }
   }
 
   const [fearGreed, currentPrice] = await Promise.all([
     fetchFearGreedIndex(),
     fetchCurrentPrice(asset),
   ]);
+
+  const tfLabel = TIMEFRAME_LABELS[timeframe] || timeframe;
 
   try {
     const response = await openai.chat.completions.create({
@@ -63,7 +97,7 @@ export async function generatePrediction(asset: string) {
         },
         {
           role: "user",
-          content: `Analyze ${asset} at $${currentPrice}. Fear & Greed Index: ${fearGreed.value} (${fearGreed.classification}). Predict the 1H price movement.`,
+          content: `Analyze ${asset} at $${currentPrice}. Fear & Greed Index: ${fearGreed.value} (${fearGreed.classification}). Predict the ${tfLabel} price movement for timeframe ${timeframe}.`,
         },
       ],
       max_tokens: 200,
@@ -74,7 +108,13 @@ export async function generatePrediction(asset: string) {
     const parsed = JSON.parse(content);
 
     const expires = new Date();
-    expires.setHours(expires.getHours() + 1);
+    if (timeframe === "5M") expires.setMinutes(expires.getMinutes() + 5);
+    else if (timeframe === "15M") expires.setMinutes(expires.getMinutes() + 15);
+    else if (timeframe === "30M") expires.setMinutes(expires.getMinutes() + 30);
+    else if (timeframe === "4H") expires.setHours(expires.getHours() + 4);
+    else if (timeframe === "1D") expires.setDate(expires.getDate() + 1);
+    else if (timeframe === "1W") expires.setDate(expires.getDate() + 7);
+    else expires.setHours(expires.getHours() + 1);
 
     const saved = await storage.savePrediction({
       asset,
@@ -85,14 +125,15 @@ export async function generatePrediction(asset: string) {
       fearGreedIndex: fearGreed.value,
       fearGreedLabel: fearGreed.classification,
       reasoning: parsed.reasoning || "",
-      timeframe: "1H",
+      timeframe,
       expiresAt: expires,
     });
 
+    predictionCache.set(cacheKey, { data: saved, time: Date.now() });
     return saved;
   } catch (error) {
     console.error("AI prediction error:", error);
-    return cached || {
+    const fallback = dbCached || {
       asset,
       prediction: "NEUTRAL",
       confidence: "50",
@@ -101,8 +142,10 @@ export async function generatePrediction(asset: string) {
       fearGreedIndex: fearGreed.value,
       fearGreedLabel: fearGreed.classification,
       reasoning: "Unable to generate prediction",
-      timeframe: "1H",
+      timeframe,
     };
+    predictionCache.set(cacheKey, { data: fallback, time: Date.now() });
+    return fallback;
   }
 }
 

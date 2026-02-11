@@ -2,6 +2,7 @@ import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import { generatePrediction, getFearGreedForDepth } from "./openai-predictions";
+import { getExchangeAggregatedData } from "./exchange-data";
 
 export async function registerRoutes(
   httpServer: Server,
@@ -255,7 +256,8 @@ export async function registerRoutes(
 
   app.get("/api/ai/prediction/:asset", async (req, res) => {
     try {
-      const prediction = await generatePrediction(req.params.asset.toUpperCase());
+      const timeframe = (req.query.timeframe as string) || "1H";
+      const prediction = await generatePrediction(req.params.asset.toUpperCase(), timeframe);
       res.json(prediction);
     } catch (error: any) {
       console.error("Prediction error:", error);
@@ -266,6 +268,16 @@ export async function registerRoutes(
   app.get("/api/ai/fear-greed", async (_req, res) => {
     try {
       const data = await getFearGreedForDepth();
+      res.json(data);
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  app.get("/api/exchange/depth/:symbol", async (req, res) => {
+    try {
+      const symbol = req.params.symbol || "BTC";
+      const data = await getExchangeAggregatedData(symbol);
       res.json(data);
     } catch (error: any) {
       res.status(500).json({ message: error.message });

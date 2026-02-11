@@ -9,6 +9,7 @@ import { AssetTabs } from "@/components/dashboard/asset-tabs";
 import { DepthBar } from "@/components/dashboard/depth-bar";
 import { TrendingFeed } from "@/components/dashboard/trending-feed";
 import { ExchangeDepth } from "@/components/dashboard/exchange-depth";
+import { AiPredictionGrid } from "@/components/dashboard/ai-prediction-grid";
 import { Button } from "@/components/ui/button";
 import { BarChart3 } from "lucide-react";
 
@@ -21,15 +22,18 @@ export default function Dashboard() {
   const { data: chartData, isLoading: chartLoading } = usePriceChart(coinId);
   const { data: orderBook, isLoading: bookLoading } = useOrderBook(selectedAsset);
 
-  const { data: fearGreed, isLoading: fgLoading } = useQuery<{
-    buyPercent: string;
-    sellPercent: string;
-    index: number;
-    label: string;
+  const { data: exchangeData, isLoading: exchangeLoading } = useQuery<{
+    exchanges: Array<{ name: string; buy: number; sell: number }>;
+    aggregatedBuy: number;
+    aggregatedSell: number;
+    fearGreedIndex: number;
+    fearGreedLabel: string;
+    longShortRatio: number;
+    timestamp: number;
   }>({
-    queryKey: ["/api/ai/fear-greed"],
-    staleTime: 5 * 60 * 1000,
-    refetchInterval: 5 * 60 * 1000,
+    queryKey: ["/api/exchange/depth", selectedAsset],
+    staleTime: 60_000,
+    refetchInterval: 60_000,
   });
 
   const { data: prediction } = useQuery<{
@@ -48,8 +52,8 @@ export default function Dashboard() {
     (p) => p.symbol.toUpperCase() === selectedAsset
   );
 
-  const depthBuy = fearGreed?.buyPercent || orderBook?.buyPercent || "50.0";
-  const depthSell = fearGreed?.sellPercent || orderBook?.sellPercent || "50.0";
+  const depthBuy = exchangeData ? String(exchangeData.aggregatedBuy) : (orderBook?.buyPercent || "50.0");
+  const depthSell = exchangeData ? String(exchangeData.aggregatedSell) : (orderBook?.sellPercent || "50.0");
 
   return (
     <div className="space-y-4 pb-20" data-testid="page-dashboard">
@@ -88,13 +92,17 @@ export default function Dashboard() {
         <DepthBar
           buyPercent={depthBuy}
           sellPercent={depthSell}
-          isLoading={bookLoading && fgLoading}
-          fearGreedIndex={fearGreed?.index}
-          fearGreedLabel={fearGreed?.label}
+          isLoading={bookLoading && exchangeLoading}
+          fearGreedIndex={exchangeData?.fearGreedIndex}
+          fearGreedLabel={exchangeData?.fearGreedLabel}
         />
       </div>
 
       <div className="px-4" style={{ animation: "fadeSlideIn 0.8s ease-out" }}>
+        <AiPredictionGrid asset={selectedAsset} currentPrice={selectedCoin?.current_price || null} />
+      </div>
+
+      <div className="px-4" style={{ animation: "fadeSlideIn 0.85s ease-out" }}>
         <TrendingFeed prices={prices} isLoading={pricesLoading} />
       </div>
 

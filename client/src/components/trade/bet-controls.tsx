@@ -85,7 +85,8 @@ export function BetControls({ amount, onAmountChange, duration, onDurationChange
           <Button
             onClick={() => handleBet("down")}
             disabled={isPending}
-            className="flex-1 relative overflow-visible bg-red-600 text-white border-red-700"
+            className="flex-1 relative overflow-visible bg-red-500 text-white border-red-600"
+            style={{ boxShadow: "0 0 12px rgba(239,68,68,0.3)" }}
             data-testid="button-bear"
           >
             Bear {BET_DEFAULTS.payoutPercent}%
@@ -94,7 +95,8 @@ export function BetControls({ amount, onAmountChange, duration, onDurationChange
           <Button
             onClick={() => handleBet("up")}
             disabled={isPending}
-            className="flex-1 relative overflow-visible bg-cyan-600 text-white border-cyan-700"
+            className="flex-1 relative overflow-visible bg-emerald-500 text-white border-emerald-600"
+            style={{ boxShadow: "0 0 12px rgba(16,185,129,0.3)" }}
             data-testid="button-bull"
           >
             Bull {BET_DEFAULTS.payoutPercent}%

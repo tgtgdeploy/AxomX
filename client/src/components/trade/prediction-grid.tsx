@@ -82,11 +82,11 @@ function BigRoadGrid({ cells, cols, rows, visibleCount }: { cells: GridCell[]; c
             let bgClass: string;
             let borderClass: string;
             if (isUp) {
-              bgClass = cell.confirmed ? "bg-cyan-600/80" : "bg-primary/20";
-              borderClass = "border-primary/40";
+              bgClass = cell.confirmed ? "bg-emerald-500" : "bg-emerald-500/30";
+              borderClass = "border-emerald-400/60";
             } else {
-              bgClass = cell.confirmed ? "bg-red-500/70" : "bg-red-500/20";
-              borderClass = "border-red-500/40";
+              bgClass = cell.confirmed ? "bg-red-500" : "bg-red-500/30";
+              borderClass = "border-red-400/60";
             }
 
             return (
@@ -97,17 +97,24 @@ function BigRoadGrid({ cells, cols, rows, visibleCount }: { cells: GridCell[]; c
                   transition-all duration-200
                   ${isVisible ? "opacity-100 scale-100" : "opacity-0 scale-75"}
                   ${bgClass} ${borderClass}
-                  ${cell.isLatest ? "ring-1 ring-yellow-400/60" : ""}
+                  ${cell.isLatest ? "ring-2 ring-yellow-400" : ""}
                 `}
-                style={cell.isLatest && isVisible ? {
-                  animation: "gridBlink 1s ease-in-out infinite",
-                  boxShadow: isUp
-                    ? "0 0 10px rgba(0,188,165,0.5)"
-                    : "0 0 10px rgba(239,68,68,0.5)",
-                } : undefined}
+                style={{
+                  ...(cell.confirmed && isVisible ? {
+                    boxShadow: isUp
+                      ? "0 0 6px rgba(16,185,129,0.4)"
+                      : "0 0 6px rgba(239,68,68,0.4)",
+                  } : {}),
+                  ...(cell.isLatest && isVisible ? {
+                    animation: "gridBlink 1s ease-in-out infinite",
+                    boxShadow: isUp
+                      ? "0 0 14px rgba(16,185,129,0.7), 0 0 4px rgba(250,204,21,0.4)"
+                      : "0 0 14px rgba(239,68,68,0.7), 0 0 4px rgba(250,204,21,0.4)",
+                  } : {}),
+                }}
                 data-testid={`grid-cell-${i}`}
               >
-                <span className={isUp ? "text-cyan-200" : "text-red-200"}>
+                <span className={isUp ? "text-emerald-100 drop-shadow-[0_0_4px_rgba(16,185,129,0.8)]" : "text-red-100 drop-shadow-[0_0_4px_rgba(239,68,68,0.8)]"}>
                   {isUp ? "\u2191" : "\u2193"}
                 </span>
               </div>
@@ -161,10 +168,10 @@ function SmallRoadGrid({ cells, cols, rows, visibleCount }: { cells: GridCell[];
             const isUp = cell.direction === "up";
 
             const fillColor = isUp
-              ? (cell.confirmed ? "bg-primary" : "bg-primary/40")
-              : (cell.confirmed ? "bg-red-500" : "bg-red-500/40");
+              ? (cell.confirmed ? "bg-emerald-500" : "bg-emerald-500/35")
+              : (cell.confirmed ? "bg-red-500" : "bg-red-500/35");
 
-            const borderColor = isUp ? "border-primary/50" : "border-red-400/50";
+            const borderColor = isUp ? "border-emerald-400/70" : "border-red-400/70";
 
             return (
               <div
@@ -183,11 +190,16 @@ function SmallRoadGrid({ cells, cols, rows, visibleCount }: { cells: GridCell[];
                   style={{
                     width: 16,
                     height: 16,
+                    ...(cell.confirmed && isVisible ? {
+                      boxShadow: isUp
+                        ? "0 0 6px rgba(16,185,129,0.5)"
+                        : "0 0 6px rgba(239,68,68,0.5)",
+                    } : {}),
                     ...(cell.isLatest && isVisible ? {
                       animation: "gridBlink 1s ease-in-out infinite",
                       boxShadow: isUp
-                        ? "0 0 8px rgba(0,188,165,0.6)"
-                        : "0 0 8px rgba(239,68,68,0.6)",
+                        ? "0 0 12px rgba(16,185,129,0.8), 0 0 4px rgba(250,204,21,0.4)"
+                        : "0 0 12px rgba(239,68,68,0.8), 0 0 4px rgba(250,204,21,0.4)",
                     } : {}),
                   }}
                 />
@@ -246,8 +258,8 @@ export function PredictionGrid({ bets, gridType, timeframe }: PredictionGridProp
   return (
     <div data-testid={`prediction-grid-${gridType}`}>
       <div className="flex items-center gap-3 mb-2 text-[11px] flex-wrap">
-        <span className="text-primary font-medium" data-testid="text-bull-count">Bull: {ups}</span>
-        <span className="text-red-400 font-medium" data-testid="text-bear-count">Bear: {downs}</span>
+        <span className="text-emerald-400 font-bold" data-testid="text-bull-count">Bull: {ups}</span>
+        <span className="text-red-400 font-bold" data-testid="text-bear-count">Bear: {downs}</span>
         <span className="flex items-center gap-1 text-muted-foreground">
           <span className="inline-block h-1.5 w-1.5 rounded-full bg-yellow-400 animate-pulse" />
           Diff {pctDiff}%

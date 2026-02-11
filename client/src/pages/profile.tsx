@@ -4,35 +4,30 @@ import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useActiveAccount } from "thirdweb/react";
 import { shortenAddress, formatCompact } from "@/lib/constants";
-import { Copy, Crown, WalletCards, Calendar, Wallet, ArrowDownToLine, ArrowUpFromLine, Users, Shield } from "lucide-react";
+import { Copy, Crown, WalletCards, Wallet, ArrowDownToLine, ArrowUpFromLine, Users, Shield, ChevronRight, Bell, Settings, History, GitBranch } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { apiRequest, queryClient } from "@/lib/queryClient";
-import type { Profile, Transaction } from "@shared/schema";
+import type { Profile } from "@shared/schema";
 import { NodeSection } from "@/components/profile/node-section";
-import { ReferralCard } from "@/components/profile/referral-card";
+import { useLocation } from "wouter";
 
-const TX_TYPE_COLORS: Record<string, string> = {
-  DEPOSIT: "bg-primary/15 text-primary",
-  WITHDRAW: "bg-red-500/15 text-red-400",
-  YIELD: "bg-blue-500/15 text-blue-400",
-  VIP_PURCHASE: "bg-purple-500/15 text-purple-400",
-  NODE_PURCHASE: "bg-amber-500/15 text-amber-400",
-};
+const MENU_ITEMS = [
+  { label: "Referral & Team", icon: GitBranch, path: "/profile/referral", description: "Referral tree & team performance" },
+  { label: "Transaction History", icon: History, path: "/profile/transactions", description: "Deposits, withdrawals & records" },
+  { label: "Notifications", icon: Bell, path: "/profile/notifications", description: "Alerts & messages" },
+  { label: "Settings", icon: Settings, path: "/profile/settings", description: "Language & preferences" },
+];
 
 export default function ProfilePage() {
   const account = useActiveAccount();
   const { toast } = useToast();
+  const [, navigate] = useLocation();
   const walletAddr = account?.address || "";
   const isConnected = !!walletAddr;
 
   const { data: profile, isLoading: profileLoading } = useQuery<Profile>({
     queryKey: ["/api/profile", walletAddr],
-    enabled: isConnected,
-  });
-
-  const { data: transactions = [], isLoading: txLoading } = useQuery<Transaction[]>({
-    queryKey: ["/api/transactions", walletAddr],
     enabled: isConnected,
   });
 
@@ -69,7 +64,7 @@ export default function ProfilePage() {
                 ) : profileLoading ? (
                   <Skeleton className="h-8 w-24" />
                 ) : (
-                  <div className="text-2xl font-bold" data-testid="text-net-assets">{formatCompact(net)}</div>
+                  <div className="text-2xl font-bold text-neon-value" data-testid="text-net-assets">{formatCompact(net)}</div>
                 )}
               </div>
               <div className="h-10 w-10 rounded-full bg-primary/20 flex items-center justify-center glow-green-sm">
@@ -89,7 +84,7 @@ export default function ProfilePage() {
               ) : profileLoading ? (
                 <Skeleton className="h-5 w-16" />
               ) : (
-                <div className="text-sm font-bold" data-testid="text-total-deposited">{formatCompact(deposited)}</div>
+                <div className="text-sm font-bold text-neon-value" data-testid="text-total-deposited">{formatCompact(deposited)}</div>
               )}
             </CardContent>
           </Card>
@@ -103,7 +98,7 @@ export default function ProfilePage() {
               ) : profileLoading ? (
                 <Skeleton className="h-5 w-16" />
               ) : (
-                <div className="text-sm font-bold" data-testid="text-total-withdrawn">{formatCompact(withdrawn)}</div>
+                <div className="text-sm font-bold text-neon-value" data-testid="text-total-withdrawn">{formatCompact(withdrawn)}</div>
               )}
             </CardContent>
           </Card>
@@ -117,7 +112,7 @@ export default function ProfilePage() {
               ) : profileLoading ? (
                 <Skeleton className="h-5 w-16" />
               ) : (
-                <div className="text-sm font-bold" data-testid="text-referral-earnings">{formatCompact(referralEarnings)}</div>
+                <div className="text-sm font-bold text-neon-value" data-testid="text-referral-earnings">{formatCompact(referralEarnings)}</div>
               )}
             </CardContent>
           </Card>
@@ -251,59 +246,31 @@ export default function ProfilePage() {
         )}
       </div>
 
-      <div className="px-4">
-        <ReferralCard refCode={isConnected ? profile?.refCode : undefined} />
-      </div>
-
-      <div className="px-4" style={{ animation: "fadeSlideIn 0.4s ease-out 0.4s both" }}>
-        <h3 className="text-sm font-bold mb-3">Transaction History</h3>
-        {!isConnected ? (
-          <Card className="border-border bg-card">
-            <CardContent className="p-6 text-center">
-              <p className="text-xs text-muted-foreground" data-testid="text-no-transactions">Connect wallet to view transactions</p>
-            </CardContent>
-          </Card>
-        ) : txLoading ? (
-          <div className="space-y-2">
-            {[1, 2, 3].map((i) => (
-              <Skeleton key={i} className="h-14 w-full rounded-md" />
+      <div className="px-4" style={{ animation: "fadeSlideIn 0.4s ease-out 0.25s both" }}>
+        <h3 className="text-sm font-bold mb-3">Menu</h3>
+        <Card className="border-border bg-card">
+          <CardContent className="p-0">
+            {MENU_ITEMS.map((item, idx) => (
+              <button
+                key={item.path}
+                className={`w-full flex items-center gap-3 px-4 py-3.5 text-left hover-elevate ${
+                  idx < MENU_ITEMS.length - 1 ? "border-b border-border/50" : ""
+                }`}
+                onClick={() => navigate(item.path)}
+                data-testid={`menu-${item.label.toLowerCase().replace(/[^a-z]/g, "-")}`}
+              >
+                <div className="h-8 w-8 rounded-md bg-primary/10 flex items-center justify-center shrink-0">
+                  <item.icon className="h-4 w-4 text-primary" />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <div className="text-sm font-medium">{item.label}</div>
+                  <div className="text-[10px] text-muted-foreground">{item.description}</div>
+                </div>
+                <ChevronRight className="h-4 w-4 text-muted-foreground shrink-0" />
+              </button>
             ))}
-          </div>
-        ) : transactions.length === 0 ? (
-          <Card className="border-border bg-card">
-            <CardContent className="p-6 text-center">
-              <p className="text-xs text-muted-foreground" data-testid="text-no-transactions">No transactions yet</p>
-            </CardContent>
-          </Card>
-        ) : (
-          <div className="space-y-2">
-            {transactions.slice(0, 20).map((tx) => (
-              <Card key={tx.id} className="border-border bg-card" data-testid={`transaction-card-${tx.id}`}>
-                <CardContent className="p-3">
-                  <div className="flex items-center justify-between gap-2 flex-wrap">
-                    <div className="flex items-center gap-2 min-w-0 flex-1 flex-wrap">
-                      <Badge
-                        className={`text-[9px] shrink-0 no-default-hover-elevate no-default-active-elevate ${TX_TYPE_COLORS[tx.type] || "bg-muted text-muted-foreground"}`}
-                        data-testid={`badge-tx-type-${tx.id}`}
-                      >
-                        {tx.type}
-                      </Badge>
-                      <div className="min-w-0">
-                        <div className="text-xs font-bold" data-testid={`text-tx-amount-${tx.id}`}>
-                          {formatCompact(Number(tx.amount))} {tx.token}
-                        </div>
-                      </div>
-                    </div>
-                    <div className="flex items-center gap-1 text-[10px] text-muted-foreground shrink-0">
-                      <Calendar className="h-3 w-3" />
-                      {tx.createdAt ? new Date(tx.createdAt).toLocaleDateString() : "--"}
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-            ))}
-          </div>
-        )}
+          </CardContent>
+        </Card>
       </div>
     </div>
   );

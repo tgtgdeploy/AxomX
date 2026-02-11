@@ -62,15 +62,19 @@ export function DepthBar({ buyPercent, sellPercent, isLoading, fearGreedIndex, f
             </div>
             <div className="flex h-3 overflow-hidden rounded-full" data-testid="bar-depth-ratio">
               <div
-                className="bg-primary/70 transition-all duration-700 ease-out"
+                className="bg-emerald-500 transition-all duration-700 ease-out"
                 style={{
                   width: `${buyPercent}%`,
                   animation: "pulseGlow 3s ease-in-out infinite",
+                  boxShadow: "0 0 8px rgba(16,185,129,0.4)",
                 }}
               />
               <div
-                className="bg-red-500/70 transition-all duration-700 ease-out"
-                style={{ width: `${sellPercent}%` }}
+                className="bg-red-500 transition-all duration-700 ease-out"
+                style={{
+                  width: `${sellPercent}%`,
+                  boxShadow: "0 0 8px rgba(239,68,68,0.4)",
+                }}
               />
             </div>
           </div>

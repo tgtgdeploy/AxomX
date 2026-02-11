@@ -14,6 +14,10 @@ import Trade from "@/pages/trade";
 import Vault from "@/pages/vault";
 import StrategyPage from "@/pages/strategy";
 import ProfilePage from "@/pages/profile";
+import ProfileReferralPage from "@/pages/profile-referral";
+import ProfileTransactionsPage from "@/pages/profile-transactions";
+import ProfileNotificationsPage from "@/pages/profile-notifications";
+import ProfileSettingsPage from "@/pages/profile-settings";
 import MarketPage from "@/pages/market";
 import NotFound from "@/pages/not-found";
 
@@ -100,6 +104,10 @@ function Router() {
       <Route path="/vault" component={Vault} />
       <Route path="/strategy" component={StrategyPage} />
       <Route path="/profile" component={ProfilePage} />
+      <Route path="/profile/referral" component={ProfileReferralPage} />
+      <Route path="/profile/transactions" component={ProfileTransactionsPage} />
+      <Route path="/profile/notifications" component={ProfileNotificationsPage} />
+      <Route path="/profile/settings" component={ProfileSettingsPage} />
       <Route path="/market" component={MarketPage} />
       <Route component={NotFound} />
     </Switch>
