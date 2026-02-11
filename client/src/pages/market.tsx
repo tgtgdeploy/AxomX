@@ -162,11 +162,25 @@ function PriceCalendar({ data }: { data: CalendarData | undefined }) {
   );
 }
 
+const COINS = ["BTC", "ETH", "SOL", "BNB", "DOGE"] as const;
+
 export default function MarketPage() {
   const [, navigate] = useLocation();
-  const [selectedCoinTab, setSelectedCoinTab] = useState("BTC");
+  const urlParams = new URLSearchParams(window.location.search);
+  const initialCoin = urlParams.get("coin")?.toUpperCase() || "BTC";
+  const [selectedCoinTab, setSelectedCoinTab] = useState(
+    COINS.includes(initialCoin as any) ? initialCoin : "BTC"
+  );
 
-  const { data: calendarData, isLoading: calLoading } = useQuery<CalendarData>({ queryKey: ["/api/market/calendar"], staleTime: 5 * 60 * 1000 });
+  const { data: calendarData, isLoading: calLoading } = useQuery<CalendarData>({
+    queryKey: ["/api/market/calendar", selectedCoinTab],
+    queryFn: async () => {
+      const res = await fetch(`/api/market/calendar?coin=${selectedCoinTab}`);
+      if (!res.ok) throw new Error("Failed to fetch calendar");
+      return res.json();
+    },
+    staleTime: 5 * 60 * 1000,
+  });
   const { data: fgHistory, isLoading: fgLoading } = useQuery<FearGreedHistory>({ queryKey: ["/api/market/fear-greed-history"], staleTime: 5 * 60 * 1000 });
   const { data: sentimentData, isLoading: sentLoading } = useQuery<SentimentData>({ queryKey: ["/api/market/sentiment"], staleTime: 60 * 1000 });
   const { data: futuresData, isLoading: oiLoading } = useQuery<FuturesOIData>({ queryKey: ["/api/market/futures-oi"], staleTime: 60 * 1000 });
@@ -176,16 +190,31 @@ export default function MarketPage() {
 
   return (
     <div className="space-y-4 pb-20" data-testid="page-market">
-      {/* Header + Calendar */}
+      {/* Header + Coin Tabs + Calendar */}
       <div className="gradient-green-dark rounded-b-2xl p-4 pt-2" style={{ animation: "fadeSlideIn 0.5s ease-out" }}>
         <div className="flex items-center gap-2 mb-3 flex-wrap">
           <Button size="icon" variant="ghost" onClick={() => navigate("/")} data-testid="button-back-home"><ArrowLeft className="h-4 w-4" /></Button>
           <h1 className="text-lg font-bold">Market Analysis</h1>
         </div>
+
+        <div className="flex items-center gap-1.5 mb-3 overflow-x-auto flex-nowrap pb-1" data-testid="coin-selector-tabs">
+          {COINS.map(sym => (
+            <Button
+              key={sym}
+              variant={selectedCoinTab === sym ? "default" : "outline"}
+              size="sm"
+              onClick={() => setSelectedCoinTab(sym)}
+              data-testid={`button-market-coin-${sym}`}
+            >
+              {sym}
+            </Button>
+          ))}
+        </div>
+
         {calLoading ? <Skeleton className="h-8 w-48 mb-2" /> : (
           <div className="mb-3">
-            <span className="text-xs text-muted-foreground">BTC Price</span>
-            <div className="text-2xl font-bold" data-testid="text-btc-price">{formatUSD(calendarData?.currentPrice || 0)}</div>
+            <span className="text-xs text-muted-foreground">{selectedCoinTab} Price</span>
+            <div className="text-2xl font-bold" data-testid="text-coin-price">{selectedCoinTab === "DOGE" ? `$${(calendarData?.currentPrice || 0).toFixed(5)}` : formatUSD(calendarData?.currentPrice || 0)}</div>
           </div>
         )}
         <Card className="border-border bg-card/50"><CardContent className="p-3">
@@ -195,7 +224,10 @@ export default function MarketPage() {
 
       {/* Fear & Greed Index */}
       <div className="px-4" style={{ animation: "fadeSlideIn 0.6s ease-out" }}>
-        <h2 className="text-sm font-bold mb-3">Fear & Greed Index</h2>
+        <div className="flex items-center justify-between gap-2 mb-3 flex-wrap">
+          <h2 className="text-sm font-bold">Fear & Greed Index</h2>
+          <Badge className="bg-muted/30 text-muted-foreground text-[9px] no-default-hover-elevate no-default-active-elevate">Market-Wide</Badge>
+        </div>
         {fgLoading ? <Skeleton className="h-48 w-full rounded-md" /> : fgHistory ? (
           <Card className="border-border bg-card"><CardContent className="p-4">
             <div className="space-y-2.5 mb-2">
@@ -334,21 +366,7 @@ export default function MarketPage() {
 
       {/* Cross-Exchange Price Table */}
       <div className="px-4" style={{ animation: "fadeSlideIn 0.9s ease-out" }}>
-        <h2 className="text-sm font-bold mb-3">Cross-Exchange Prices</h2>
-
-        <div className="flex items-center gap-1.5 mb-3 overflow-x-auto flex-nowrap pb-1">
-          {["BTC", "ETH", "SOL", "BNB", "DOGE"].map(sym => (
-            <Button
-              key={sym}
-              variant={selectedCoinTab === sym ? "default" : "outline"}
-              size="sm"
-              onClick={() => setSelectedCoinTab(sym)}
-              data-testid={`button-coin-tab-${sym}`}
-            >
-              {sym}
-            </Button>
-          ))}
-        </div>
+        <h2 className="text-sm font-bold mb-3">Cross-Exchange Prices — {selectedCoinTab}</h2>
 
         {epLoading ? (
           <div className="space-y-1">{Array.from({length: 8}, (_, i) => <Skeleton key={i} className="h-10 w-full rounded-sm" />)}</div>

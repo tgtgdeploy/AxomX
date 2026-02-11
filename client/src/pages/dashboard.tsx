@@ -66,7 +66,7 @@ export default function Dashboard() {
           <Button
             size="icon"
             variant="ghost"
-            onClick={() => navigate("/market")}
+            onClick={() => navigate(`/market?coin=${selectedAsset}`)}
             className="mt-1 shrink-0"
             data-testid="button-market-analysis"
           >

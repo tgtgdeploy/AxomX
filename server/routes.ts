@@ -405,10 +405,15 @@ export async function registerRoutes(
     }
   });
 
-  app.get("/api/market/calendar", async (_req, res) => {
+  app.get("/api/market/calendar", async (req, res) => {
     try {
+      const coinMap: Record<string, string> = {
+        BTC: "bitcoin", ETH: "ethereum", BNB: "binancecoin", DOGE: "dogecoin", SOL: "solana",
+      };
+      const symbol = (req.query.coin as string || "BTC").toUpperCase();
+      const coinId = coinMap[symbol] || "bitcoin";
       const response = await fetch(
-        "https://api.coingecko.com/api/v3/coins/bitcoin/market_chart?vs_currency=usd&days=30&interval=daily"
+        `https://api.coingecko.com/api/v3/coins/${coinId}/market_chart?vs_currency=usd&days=30&interval=daily`
       );
       if (!response.ok) throw new Error("Failed to fetch price data");
       const data = await response.json();
