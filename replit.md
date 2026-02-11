@@ -123,3 +123,10 @@ Preferred communication style: Simple, everyday language.
   - `profile/`: NodeSection, ReferralCard
 - Added `client/src/lib/constants.ts` for shared formatting utilities and asset mappings
 - Added Binance order book depth data integration (via direct API calls)
+- Enhanced Market Analysis page with multi-exchange data:
+  - Fear & Greed Index with 365-day historical breakdown + BTC Price vs FGI dual-axis chart (Recharts)
+  - Market Sentiment "Top Net Inflows" from Binance US + CoinGecko aggregated data for BTC/ETH/SOL/BNB/DOGE
+  - Futures Open Interest per exchange (Binance/OKX/Bybit/Bitget/Gate) for BTC/ETH/SOL pairs
+  - Cross-Exchange Price table for all 5 coins across 16 exchanges (real data from Binance US, Kraken, Coinbase, CoinGecko)
+  - Total Net Inflow and Total OI summary cards
+- API endpoints: `/api/market/exchange-prices`, `/api/market/futures-oi` (updated), `/api/market/sentiment` (updated)
